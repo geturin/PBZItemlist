@@ -1,0 +1,21 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: mymindstorm/setup-emsdk@v12
+    - run: emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release
+    - run: cmake --build build
+    - run: npm pack
+    - uses: actions/upload-artifact@v3
+      with:
+        name: package
+        path: ooz-wasm-*.tgz
+        retention-days: 1

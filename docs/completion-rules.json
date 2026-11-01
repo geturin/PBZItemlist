@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "source": "ProjectPBZ/Content/JavaScript/UI/Widget/Foundation/MapItemCompletion.js",
+  "scope": "Game map completion rules; the viewer may count source locations separately from game item-ID deduplication.",
+  "sourceFields": {
+    "saveGuid": "SaveGuidString FName; no value becomes null",
+    "itemId": "ItemID FName",
+    "nodeGuids": "NodeGuids FString[]",
+    "mobDomain": "MobDomainName FName",
+    "flowAsset": "FlowAssetName FName; association only, not a prerequisite",
+    "weaponId": "WeaponID FName for weapon and shaqiWeapon",
+    "accessoryId": "AccessoryID FName",
+    "medicineId": "MedicineID FName",
+    "bellId": "BellID FName"
+  },
+  "categories": {
+    "bell": {
+      "method": "bell_active",
+      "sourceLine": 82,
+      "match": {
+        "subsystem": "BellManager",
+        "collection": "ActivateBellIDs",
+        "source": "bellId"
+      },
+      "counting": "Distinct BellID within selected map IDs."
+    },
+    "weapon": {
+      "method": "acquired_current_cycle",
+      "sourceLine": 116,
+      "match": {
+        "subsystem": "PBZBackPackSubsystem",
+        "collection": "MainWeaponInfos",
+        "source": "weaponId",
+        "requiredProperty": "AcquiredCycle",
+        "compareTo": "currentCycle"
+      },
+      "counting": "Distinct category item ID within selected map IDs; source-location counts can differ."
+    },
+    "shaqiWeapon": {
+      "method": "acquired_current_cycle",
+      "sourceLine": 116,
+      "match": {
+        "subsystem": "PBZBackPackSubsystem",
+        "collection": "ShaqiWeaponInfos",
+        "source": "weaponId",
+        "requiredProperty": "AcquiredCycle",
+        "compareTo": "currentCycle"
+      },
+      "counting": "Distinct category item ID within selected map IDs; source-location counts can differ."
+    },
+    "accessory": {
+      "method": "acquired_current_cycle",
+      "sourceLine": 161,
+      "match": {
+        "subsystem": "PBZBackPackSubsystem",
+        "collection": "Accessories",
+        "source": "accessoryId",
+        "requiredProperty": "AcquiredCycle",
+        "compareTo": "currentCycle"
+      },
+      "counting": "Distinct category item ID within selected map IDs; source-location counts can differ."
+    },
+    "medicine": {
+      "method": "acquired_current_cycle",
+      "sourceLine": 161,
+      "match": {
+        "subsystem": "PBZBackPackSubsystem",
+        "collection": "MedicineInfos",
+        "source": "medicineId",
+        "requiredProperty": "AcquiredCycle",
+        "compareTo": "currentCycle"
+      },
+      "counting": "Distinct category item ID within selected map IDs; source-location counts can differ."
+    },
+    "rongShu": {
+      "method": "any_flow_node_exists",
+      "sourceLine": 209,
+      "match": {
+        "subsystem": "EventPipeline",
+        "collection": "ExecuteNodeGuid",
+        "source": "nodeGuids",
+        "operation": "any_key_exists"
+      },
+      "counting": "Each configured challenge record.",
+      "unknownWhen": "nodeGuids is empty or event section is absent."
+    },
+    "longZhu": {
+      "method": "any_flow_node_exists",
+      "sourceLine": 209,
+      "match": {
+        "subsystem": "EventPipeline",
+        "collection": "ExecuteNodeGuid",
+        "source": "nodeGuids",
+        "operation": "any_key_exists"
+      },
+      "counting": "Each configured challenge record.",
+      "unknownWhen": "nodeGuids is empty or event section is absent."
+    },
+    "scarecrow": {
+      "method": "any_flow_node_exists",
+      "sourceLine": 209,
+      "match": {
+        "subsystem": "EventPipeline",
+        "collection": "ExecuteNodeGuid",
+        "source": "nodeGuids",
+        "operation": "any_key_exists"
+      },
+      "counting": "Each configured challenge record.",
+      "unknownWhen": "nodeGuids is empty or event section is absent."
+    },
+    "amber": {
+      "method": "actor_or_mob_or_node",
+      "sourceLine": 265,
+      "match": {
+        "any": [
+          {
+            "subsystem": "LevelActorManager",
+            "collection": "ActorSaveData",
+            "source": "saveGuid",
+            "operation": "actor_key_compatible_exists"
+          },
+          {
+            "subsystem": "PBZGameSystem",
+            "collection": "CompleteAddItemMobDomainNames",
+            "source": "mobDomain",
+            "operation": "contains"
+          },
+          {
+            "subsystem": "EventPipeline",
+            "collection": "ExecuteNodeGuid",
+            "source": "nodeGuids",
+            "operation": "any_key_exists"
+          }
+        ]
+      },
+      "actorCompatibility": "Exact actor ID; for older saves allow unqualified Actor name versus level-qualified LevelPackage-ActorName; ambiguous suffix matches are unknown.",
+      "counting": "Every configured material record. Test is excluded by global total algorithm; other legacy-looking rows are not automatically excluded."
+    },
+    "blackStone": {
+      "method": "actor_or_mob_or_node",
+      "sourceLine": 323,
+      "match": {
+        "any": [
+          {
+            "subsystem": "LevelActorManager",
+            "collection": "ActorSaveData",
+            "source": "saveGuid",
+            "operation": "actor_key_compatible_exists"
+          },
+          {
+            "subsystem": "PBZGameSystem",
+            "collection": "CompleteAddItemMobDomainNames",
+            "source": "mobDomain",
+            "operation": "contains"
+          },
+          {
+            "subsystem": "EventPipeline",
+            "collection": "ExecuteNodeGuid",
+            "source": "nodeGuids",
+            "operation": "any_key_exists"
+          }
+        ]
+      },
+      "actorCompatibility": "Exact actor ID; for older saves allow unqualified Actor name versus level-qualified LevelPackage-ActorName; ambiguous suffix matches are unknown.",
+      "counting": "Every configured material record. Test is excluded by global total algorithm; other legacy-looking rows are not automatically excluded."
+    },
+    "memoryFlower": {
+      "method": "inventory_current_cycle",
+      "sourceLine": 382,
+      "match": {
+        "subsystem": "PBZBackPackSubsystem",
+        "collection": "Inventories",
+        "source": "itemId",
+        "requiredProperty": "AcquiredCycle",
+        "compareTo": "currentCycle"
+      },
+      "gameFilter": {
+        "requiresPropData": true,
+        "excludeWhen": "ItemType == MemoryFlower and GetOrderedMemoryFlowerPetals(ItemID).Num() > 1"
+      },
+      "counting": "Every filtered source record, including petal records; composed parent flowers can be retained in catalog with gameCounted=false.",
+      "unknownWhen": "PropData or petal grouping cannot be resolved; inventory/cycle missing.",
+      "staticFilterEvidence": {
+        "propsTable": "DT_InventoryData",
+        "memoryFlowerItemType": 4,
+        "memoryPetalItemType": 5,
+        "petalGrouping": "Petal IntegrationItemID equals complete flower ItemID; order by SequentialIndex.",
+        "unknownPropIds": [
+          "F_18011",
+          "F_18012"
+        ]
+      }
+    },
+    "primary": {
+      "method": "actor_exact_exists",
+      "sourceLine": 439,
+      "match": {
+        "subsystem": "LevelActorManager",
+        "collection": "ActorSaveData",
+        "source": "saveGuid",
+        "operation": "exact_key_exists"
+      },
+      "counting": "Not part of the seven-category game total; map marker only.",
+      "unknownWhen": "saveGuid is absent/None or actor section is absent. The game skips such records instead of proving them completed."
+    },
+    "key": {
+      "method": "key_item_and_runtime_lock",
+      "sourceLine": 469,
+      "match": {
+        "subsystem": "PBZBackPackSubsystem",
+        "collection": "Inventories",
+        "source": "itemId",
+        "operation": "key_exists"
+      },
+      "missingOnlyWhen": "Inventory key absent AND a runtime SwitchLockObject in LockObjectInfos.MapLockGroups[0] needs itemId. hasSwitchLockObj ignores its mapID argument.",
+      "counting": "Not part of the seven-category game total; map marker only.",
+      "offlineSemantics": "Inventory key existence supports obtained; inventory absence alone is unknown. Actor/flow completion can be shown as supplemental evidence without calling it the exact game key rule."
+    }
+  },
+  "limitations": [
+    "A zero quantity does not erase acquisition history.",
+    "ExecuteNodeGuid completion is key existence; do not test its boolean value.",
+    "AcquiredCycle comparison requires a parsed current cycle; absent cycle information makes cycle-dependent results unknown.",
+    "Runtime lock object availability is not fully serialized; key markers need an unknown state when the item is absent but matching active lock cannot be established.",
+    "Static FlowAssetName and task names alone establish associations, not prerequisites.",
+    "Coordinates and straight-line nearest bells do not establish walkable routes."
+  ],
+  "catalogFlags": {
+    "gameCounted": "true/false/null for whether the source point participates in its game completion category; null means filtering cannot yet be established",
+    "aggregationParent": "Boolean: true only for a complete memory-flower parent (ItemType=4) with more than one configured petal. Petal parent IDs live in memoryFlower.parentId.",
+    "requirements": "Association metadata only unless relation is prerequisite. A flow asset ID is never an ExecuteNodeGuid key; compare source.nodeGuids for executed-node completion."
+  }
+}

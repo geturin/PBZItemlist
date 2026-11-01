@@ -1,0 +1,10 @@
+{
+  "package": "ooz-wasm",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "tarball": "https://registry.npmjs.org/ooz-wasm/-/ooz-wasm-2.0.0.tgz",
+  "tarball_integrity": "sha512-Ewk+Vga2m9niFGV5qT+4EKfBnFEQSQfnTdOWSlnQcpDB2OAdk7TpRHfKqxLSLhDKRjKjw9R+sGlOreWW8ABR0A==",
+  "source_repository": "https://github.com/SnosMe/ooz-wasm",
+  "source_commit": "ebed82851988add824e092dc4db320c8fa39aaca",
+  "source_sha256": "9c08cfe2538a3d96d9b1d4da4a2018f4ea0658b3fa8b8584294deaf7aa19ee97"
+}
