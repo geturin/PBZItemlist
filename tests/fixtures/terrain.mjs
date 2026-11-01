@@ -16,7 +16,13 @@ export function terrainFixture(catalog) {
   const zBands=[{id:'z0',firstIndex:0,indexCount:6,triangleCount:2,bounds:normal},
     {id:'z1',firstIndex:6,indexCount:3,triangleCount:1,bounds:alternate}];
   const mapFocus={mapId,world,defaultBandId:'z0',focusByBand:[{bandId:'z0',anchorCount:4,bounds:normal},{bandId:'z1',anchorCount:1,bounds:alternate}]};
-  return {manifest:{format:1,maps:{[mapId]:mapFocus},worlds:{[world]:{id:world,file:'ui-test-world.json.gz'}}},
+  const triangle=(start)=>[vertices.slice(start,start+3).map(v=>v.slice(0,2))];
+  const layers=[{id:'near',bandId:'z0',minZ:p.Z-1,maxZ:p.Z+1,polygons:[triangle(0)]},
+    {id:'far',bandId:'z0',minZ:q.Z-1,maxZ:q.Z+1,polygons:[triangle(3)]},
+    {id:'high',bandId:'z1',minZ:high-1,maxZ:high+1,polygons:[triangle(6)]}];
+  const common={world,unit:'cm',coordinateSystem:'Unreal Z-up',bounds:{min:normal.min,max:alternate.max},zBands,defaultBandId:'z0',mapFocus:[mapFocus]};
+  return {manifest:{format:2,maps:{[mapId]:mapFocus},worlds:{[world]:{id:world,twoD:{file:'ui-test-world.2d.json.gz'},threeD:{file:'ui-test-world.3d.json.gz'}}}},
+    plan:{format:2,...common,layers},
     geometry:{format:1,world,unit:'cm',coordinateSystem:'Unreal Z-up',vertices,indices:[0,1,2,3,4,5,6,7,8],
       bounds:{min:normal.min,max:alternate.max},zBands,defaultBandId:'z0',mapFocus:[mapFocus]}};
 }

@@ -6,7 +6,9 @@ ROOT=Path(__file__).resolve().parents[1]
 PUBLIC=ROOT/'public'
 DIST=ROOT/'dist'
 DIST.mkdir(exist_ok=True)
-files=sorted(p for p in PUBLIC.rglob('*') if p.is_file())
+# Keep the previous derived meshes available for source regression only.
+# No v2.1 route requests them, and they must never inflate the published site.
+files=sorted(p for p in PUBLIC.rglob('*') if p.is_file() and p.relative_to(PUBLIC).parts[:2] != ('data','terrain'))
 for path in files:
     assert not path.is_symlink()
     assert path.suffix.lower() not in {'.sav','.pem','.key','.pfx','.uasset','.uexp','.ubulk','.ucas','.utoc','.pak'}
@@ -19,6 +21,7 @@ with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
 with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None
     names=z.namelist()
+    assert not any(name.startswith('data/terrain/') for name in names),'Legacy meshes must not be published'
     normalized={name.casefold() for name in names}
     assert len(normalized)==len(names),'Case-insensitive duplicate ZIP names'
     assert all('\\' not in name and ':' not in name and not name.startswith('/') and '..' not in Path(name).parts for name in names)

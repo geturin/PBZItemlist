@@ -13,7 +13,7 @@ npm ci --ignore-scripts
 npm test
 ```
 
-v2 的 `npm test` 按顺序运行以下检查，任何一步失败都会停止。修改静态模板或翻译后先执行 `npm run build`；测试不自动覆盖生成的页面。
+2.1 的 `npm test` 按顺序运行以下检查，任何一步失败都会停止。修改静态模板或翻译后先执行 `npm run build`；测试不自动覆盖生成的页面。命令以 `package.json` 当前脚本为准。
 
 ```sh
 node scripts/build_pages.mjs --check
@@ -23,6 +23,7 @@ node tests/completion.test.mjs
 node tests/map-view.test.mjs
 node tests/i18n.test.mjs
 node tests/terrain-data.test.mjs
+node tests/terrain-loading.test.mjs
 node tests/terrain-view.test.mjs
 node tests/terrain-assets.test.mjs
 node tests/analytics.test.mjs
@@ -37,17 +38,18 @@ node tests/ui.test.mjs en
 
 | 检查 | 命令 | 已核验的结果与范围 |
 | --- | --- | --- |
-| 生成与路由 | `node scripts/build_pages.mjs --check`、`node tests/pages.test.mjs` | 检查两份英文页、robots.txt、sitemap 可复现；四个静态路由的 canonical、hreflang、语言切换、资源路径、FAQ 与 JSON-LD 一致性；入口保持简洁，工具有四种地图模式与折叠详情。 |
+| 生成与路由 | `node scripts/build_pages.mjs --check`、`node tests/pages.test.mjs` | 检查两份英文页、robots.txt、sitemap 可复现；四个静态路由的 canonical、hreflang、语言切换、资源路径、FAQ 与 JSON-LD 一致性；入口保持简洁，工具有独立地图模式与折叠详情。 |
 | 静态目录 | `node scripts/validate_catalog.mjs` | 检查 698 个点位、13 类目录、187 个铃铛参照和 80 条任务元数据，以及 ID 唯一性、地图和类别引用、坐标、条件关系和运行时目录不含原始解包来源字段。 |
 | 完成规则 | `node tests/completion.test.mjs` | 验证周目、Actor 与事件节点记录的存在性、已消耗钥匙、部分存档缺字段、任务关联与已知前置的区别，以及 13 类目录的状态统计。 |
 | 地图绘图 | `node tests/map-view.test.mjs` | 验证 UV 左上原点和 Y 向下、真实画布比例、筛选不改变游戏地图框、部分点无命中时不混用坐标系、非法点、强制世界坐标模式，以及固定世界范围。 |
 | 双语数据 | `node tests/i18n.test.mjs` | 核对游戏英文名称样本和名称覆盖、中文搜索原文、缺译回退；翻译不改变 ID、坐标、规则、完成判定或铃铛距离。 |
-| 地形加载 | `node tests/terrain-data.test.mjs` | 几何格式、索引与有限值校验，高度区域选择及地图取景框回退。 |
-| 地形绘制 | `node tests/terrain-view.test.mjs` | 厘米与 Three.js 轴转换、原点处理、源三角索引、边缘显示厚度、高度裁剪、Canvas 路径缓存和 WebGL 不可用时的安全回退；不启动真实 GPU。 |
-| 发布地形 | `node tests/terrain-assets.test.mjs` | 全部 9 个世界／12 个地图清单的 gzip 大小、JSON 大小、SHA-256、顶点／三角形数和连续高度分组；拒绝原始包名及私人路径，并以三个不同塔层的铃铛检验 XYZ 对齐。 |
+| 楼层格式与轮廓 | `node tests/terrain-data.test.mjs` | 独立轮廓和 3D 格式的有限值、索引及预算校验，gzip、长度和哈希检查；Float64 坐标、typed 索引复用、三探针投影与 Path2D 缓存，以及高度区域和取景回退。 |
+| 独立加载与取消 | `node tests/terrain-loading.test.mjs` | 9 组无浏览器检查：可选 2D 楼层不请求 3D、共享世界缓存、分视图释放、清单待定期间取消、切图竞态、下载重试、路径限制，以及 Worker 成功、取消和错误后的终止与重试。使用 fetch/Worker 替身，不声称测量了真实浏览器线程；默认游戏贴图不加载楼层清单由 UI 用例另行检查。 |
+| 楼层绘制 | `node tests/terrain-view.test.mjs` | 厘米与轴转换、Float64 到 Float32 的原点精度、typed 索引复用、轮廓缓存、高度过滤；用真实 Three.js CPU 类和计数后端核对同世界几何复用、标记 DOM 复用、选点保持缩放、显式聚焦、平移／旋转、隐藏零帧、1×1 画布及清理后重载。无真实 WebGL 或 GPU。 |
+| 发布地图资产 | `node tests/terrain-assets.test.mjs` | 按发布清单检查地图图像、楼层文件引用、文件大小、SHA-256、计数和高度分组；拒绝私人路径、缺失引用和不应发布的原始资产。具体资产数量以当前清单及测试输出为准。 |
 | 访问计数 | `node tests/analytics.test.mjs` | 固定公开路由、首次真实交互门槛、每次页面加载最多一次、隐藏页与脚本事件排除、机器人／DNT／GPC／停用偏好、来源仅保留 origin，无私人请求体。 |
 | 存档容器 | `node scripts/test_codec.mjs` | 默认使用合成数据，`private_fixture_used` 为 `false`。检查 WebCrypto AES-GCM、zlib、认证、时间与槽位选择、重复名称、越界、重叠、尾随数据、解压长度和资源限制，并运行真实 Oodle WASM 的 stored frame 烟测。 |
-| 双语界面 | `node tests/ui.test.mjs`、`node tests/ui.test.mjs en` | 默认使用合成加密双槽存档和小型 gzip 地形。覆盖三态统计、切槽、任务四状态、CSV 原生 XYZ、清空／错误、中文名搜索、默认 2D 地形按需加载、实际 Path2D 填充、高度过滤、无标记区域仍画表面、3D 不支持时回到 2D，以及显式游戏 UV／世界坐标切换。 |
+| 双语界面 | `node tests/ui.test.mjs`、`node tests/ui.test.mjs en` | 使用合成加密双槽存档与小型显示样本。核对三态统计、切槽、任务、CSV XYZ、中文名搜索、默认游戏贴图独立加载、未选物品不下载 3D 或启动 WebGL、可选楼层／3D／世界坐标切换、高度聚焦、清空与错误；控制加载时序，防止旧异步结果覆盖新选择或留下旧高亮。 |
 
 各项通过数量以本次命令输出为准；界面用例会随交互变化增加，不固定为某个旧版本的数量。
 
@@ -59,7 +61,9 @@ UI 仿真中的资源请求为不带存档内容的 GET；独立访问计数的 
 
 地图测试验证已生成 UV 的绘制和回退行为，不验证原生网格重建与运行中的游戏完全相同。离线预处理使用 Qhull；共圆点连边、浮点边界与三角网裁切细节仍需运行时比对，游戏自己的图标避让也会改变截图位置。详见[地图投影说明](MAP-PROJECTION.md)。
 
-地形数据测试检查真实导航三角形的静态完整性和已知高度地标，不能证明当前游戏状态下每个表面都可达，也不验证自动路线。共享世界、坐标转换和覆盖限制见[地形说明](TERRAIN.md)。3D 的真实 WebGL2 画面、触控及显存表现仍需单独手验。
+楼层资产测试验证发布文件及显示数据约定，并限制数据体积与面数；杀气塔三处独立高度以附近 5 米 XY 内、垂直偏差不超过 1.5 米的显示面复核，不沿用原始导航顶点的精确距离标准。图像检查覆盖 WebP 尺寸、比例、哈希与共享引用。这些检查不证明简化楼层面逐点等同于原始导航地面，也不能证明当前游戏状态下可达。共享世界、坐标转换和显示近似见[地形说明](TERRAIN.md)。
+
+Node 与 DOM 仿真不启动真实浏览器或 GPU。CPU 微基准只能说明测量环境中的转换和分配开销，不能作为浏览器帧率、移动端触控或显存上限的实测结论；当前 3D 画面与设备内存仍需在获准的真实浏览器环境单独核对。
 
 ## 可选的私有回归样本
 
@@ -109,7 +113,7 @@ Remove-Item Env:PBZ_TEST_SAVE
 python scripts/package.py
 ```
 
-也可以使用 `npm run package`。输出为 `dist/PBZItemlist.zip`，仅包含 `public/` 的内容，包括运行所需的应用、静态目录、许可证与解码器及其对应源码。它不依赖仓库外的解包文件，也不包含开发测试目录或个人回归样本。
+也可以使用 `npm run package`。输出为 `dist/PBZItemlist.zip`，从 `public/` 中打包运行所需的应用、静态目录、许可证与解码器及其对应源码，并排除旧版 `data/terrain/**`。它不依赖仓库外的解包文件，也不包含开发测试目录或个人回归样本；旧版高密度导航派生文件仍保留在源码供回归比较。
 
 压缩包内的 `index.html` 直接位于根目录。解压后以该目录作为静态服务器的文档根即可独立发布；无需 Node.js 服务端或存档上传接口。脚本会检查 ZIP 完整性和路径，并拒绝个人存档、密钥、原始 Unreal 资源及重复源码压缩包等文件。
 
@@ -125,10 +129,11 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 1. 不选存档，核对类别与地图筛选、点位列表及载入前的计数。
 2. 选择自己的 `.sav`，核对进度、槽位、最新时间和状态重算；在网络面板检查没有携带存档内容的上传请求。
-3. 默认 2D 地形应在选择地图后加载。切换高度区域及物品高度聚焦，核对表面与标记的过滤、列表保留、空标记区域仍显示地形；切换 3D 检查旋转、平移、缩放与不同楼层。
-4. 显式切换“游戏地图 / 世界坐标”，核对模式提示、未校准点回退、筛选后的稳定布局、详情与原生坐标；关闭 WebGL 支持时检查自动回到 2D。
-5. 导出 CSV、切换槽位、清除数据，再选择无效文件，检查状态和错误提示。
-6. 点选坐标和铃铛近邻，检查窄屏布局与键盘操作；比对游戏截图时记录地图、点位编号和高度，并考虑游戏图标避让造成的偏移。
+3. 默认游戏贴图只应加载当前地图的 1024 预览；网络中不应出现楼层清单或几何。放大到 2 倍时检查当前 2048 细节图的延迟加载，不应一次预取全部地图。
+4. 切到 3D 但不选物品时，不应下载模型或启动 WebGL。首次选中后默认勾选高度聚焦，范围为选中 Z 上下各 250 厘米，并只自动靠近一次；后续选点保持缩放。取消高度聚焦可看区域概览，“靠近选中”可再次拉近。再核对可选楼层平面、空标记区域和异步切图；3D 左拖／单指平移、右拖旋转，操作按钮可切模式和缩放。
+5. 离开 3D 或换世界后，检查旧请求取消、标记和几何清理、隐藏绘制停止；返回可正常重载。再核对游戏 UV／世界坐标的独立布局、未校准点回退及 WebGL 不可用时的二维回退。
+6. 导出 CSV、切换槽位、清除数据，再选择无效文件，检查状态和错误提示。
+7. 点选坐标和铃铛近邻，检查窄屏布局与键盘操作；比对游戏截图时记录地图、点位编号和高度，并考虑游戏图标避让造成的偏移。
 
 WebCrypto 需要 HTTPS 或受信任的本机 localhost 环境。Oodle 解码还需要浏览器支持 WebAssembly SIMD；部署的 CSP 需要允许本站脚本及 `wasm-unsafe-eval`。原始游戏坐标的直线近邻仅用于定位，不代表道路可达性。
 

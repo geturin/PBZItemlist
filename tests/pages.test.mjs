@@ -52,8 +52,8 @@ for(const page of pages){
   }
   if(page.tool){
     assert(d.querySelector('#coordinate-map')&&d.querySelector('#file-input'));
-    assert.deepEqual([...d.querySelector('#map-view-select').options].map(option=>option.value),['terrain','3d','game','world']);
-    assert.equal(d.querySelector('#map-view-select').value,'terrain','2D navigation surfaces are the default');
+    assert.deepEqual([...d.querySelector('#map-view-select').options].map(option=>option.value),['game','terrain','3d','world']);
+    assert.equal(d.querySelector('#map-view-select').value,'game','The native 2D map is the lightweight default');
     for(const id of ['map-3d','map-surface-controls','map-height-band','map-height-focus'])assert(d.getElementById(id),`Missing terrain control: ${id}`);
     assert(d.querySelector('#map-3d').classList.contains('hidden'),'3D initializes only on demand');
     assert.equal(d.querySelector('#detail-panel').tagName,'DETAILS');assert(!d.querySelector('#detail-panel').open);

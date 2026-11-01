@@ -1,58 +1,80 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Lazy-load derived navigation surfaces. No game packages or player data are used here.
-const manifestURL = new URL('../data/terrain/manifest.json', import.meta.url);
+// 2D outlines and 3D floors are separate, bounded, on-demand assets.
+import { decodeTerrainAsset } from './terrain-format.js';
+export { validateTerrainGeometry, validateTerrain2D } from './terrain-format.js';
+const manifestURL = new URL('../data/terrain-low/manifest.json', import.meta.url);
 let manifestPromise;
-const cache = new Map();
-
-export function validateTerrainGeometry(mesh) {
-  if (mesh?.format !== 1 || mesh.unit !== 'cm' || mesh.coordinateSystem !== 'Unreal Z-up' || !Array.isArray(mesh.vertices)
-      || !Array.isArray(mesh.indices) || mesh.indices.length % 3 !== 0
-      || mesh.vertices.length > 4_000_000 || mesh.indices.length > 24_000_000) throw Error('Invalid terrain data');
-  if (!mesh.vertices.every(v => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite))) throw Error('Invalid terrain vertex');
-  if (!mesh.indices.every(i => Number.isSafeInteger(i) && i >= 0 && i < mesh.vertices.length)) throw Error('Invalid terrain face');
-  return mesh;
-}
+const cache = { '2d': null, '3d': null };
+const generation = { '2d': 0, '3d': 0 };
+const aborted = () => Object.assign(new Error('Terrain request cancelled'), { name: 'AbortError' });
 
 export async function getTerrainManifest() {
   if (!manifestPromise) manifestPromise = fetch(manifestURL, { cache: 'no-cache' }).then(async response => {
     if (!response.ok) throw Error('Terrain manifest unavailable');
     const manifest = await response.json();
-    if (manifest.format !== 1 || !manifest.maps || !manifest.worlds) throw Error('Invalid terrain manifest');
+    if (manifest.format !== 2 || !manifest.maps || !manifest.worlds) throw Error('Invalid terrain manifest');
     return manifest;
   }).catch(error => { manifestPromise = undefined; throw error; });
   return manifestPromise;
 }
 
-export async function loadTerrainForMap(mapId) {
-  const manifest = await getTerrainManifest();
-  const map = manifest.maps[mapId];
-  const world = map && manifest.worlds[map.world];
-  if (!world) return null;
-  if (!cache.has(map.world)) {
-    // Keep one world in memory. Subregions in the same world reuse that surface.
-    cache.clear();
-    const promise = (async () => {
-      const url = new URL(world.file, manifestURL);
-      if (url.origin !== manifestURL.origin || !url.pathname.startsWith(new URL('.', manifestURL).pathname)) throw Error('Invalid terrain URL');
-      if (world.sha256) url.searchParams.set('v', world.sha256.slice(0, 16));
-      const response = await fetch(url, { cache: 'force-cache' });
-      if (!response.ok) throw Error('Terrain unavailable');
-      let buffer = await response.arrayBuffer();
-      const prefix = new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 2));
-      if (prefix[0] === 0x1f && prefix[1] === 0x8b) {
-        buffer = await new Response(new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
-      }
-      if (buffer.byteLength > 220 * 1024 * 1024 || (world.jsonBytes && buffer.byteLength !== world.jsonBytes)) throw Error('Terrain size mismatch');
-      if (world.sha256 && globalThis.crypto?.subtle) {
-        const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buffer)), byte => byte.toString(16).padStart(2, '0')).join('');
-        if (digest !== world.sha256) throw Error('Terrain integrity mismatch');
-      }
-      return validateTerrainGeometry(JSON.parse(new TextDecoder().decode(buffer)));
-    })();
-    cache.set(map.world, promise);
-    promise.catch(() => { if (cache.get(map.world) === promise) cache.delete(map.world); });
+export function releaseTerrain(view) {
+  for (const mode of view ? [view] : ['2d', '3d']) {
+    if (!(mode in cache)) continue;
+    generation[mode]++;
+    cache[mode]?.controller.abort();
+    cache[mode] = null;
   }
-  return { geometry: await cache.get(map.world), metadata: map };
+}
+
+function workerGeometry(url, asset, signal) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./terrain-worker.js?v=2.1.0', import.meta.url), { type: 'module' });
+    const stop = () => { worker.terminate(); signal.removeEventListener('abort', cancel); };
+    const cancel = () => { stop(); reject(aborted()); };
+    signal.addEventListener('abort', cancel, { once: true });
+    worker.onmessage = event => {
+      stop();
+      if (!event.data?.ok) reject(Error('Terrain decoding failed'));
+      else resolve(event.data.geometry);
+    };
+    worker.onerror = () => { stop(); reject(Error('Terrain worker unavailable')); };
+    if (signal.aborted) cancel();
+    else worker.postMessage({ url: url.href, asset });
+  });
+}
+
+async function loadAsset(url, asset, view, signal) {
+  if (view === '3d' && typeof Worker !== 'undefined') return workerGeometry(url, asset, signal);
+  const response = await fetch(url, { cache: 'force-cache', signal });
+  if (!response.ok) throw Error('Terrain unavailable');
+  const geometry = await decodeTerrainAsset(await response.arrayBuffer(), asset, view);
+  if (signal.aborted) throw aborted();
+  return geometry;
+}
+
+export async function loadTerrainForMap(mapId, { view = '2d' } = {}) {
+  if (!['2d', '3d'].includes(view)) throw Error('Invalid terrain view');
+  const requestGeneration = generation[view];
+  const manifest = await getTerrainManifest();
+  if (requestGeneration !== generation[view]) throw aborted();
+  const map = manifest.maps[mapId], world = map && manifest.worlds[map.world];
+  const asset = world?.[view === '2d' ? 'twoD' : 'threeD'];
+  if (!asset) return null;
+  const key = `${map.world}:${asset.file}`;
+  if (cache[view]?.key !== key) {
+    cache[view]?.controller.abort();
+    const controller = new AbortController();
+    const url = new URL(asset.file, manifestURL);
+    if (url.origin !== manifestURL.origin || !url.pathname.startsWith(new URL('.', manifestURL).pathname)) throw Error('Invalid terrain URL');
+    const entry = { key, controller, promise: null };
+    entry.promise = loadAsset(url, asset, view, controller.signal).catch(error => {
+      if (cache[view] === entry) cache[view] = null;
+      throw error;
+    });
+    cache[view] = entry;
+  }
+  return { geometry: await cache[view].promise, metadata: map, view };
 }
 
 export function terrainBand(mesh, mapId, z, preferredId) {

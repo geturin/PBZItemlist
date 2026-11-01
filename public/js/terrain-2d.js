@@ -1,72 +1,54 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Canvas backdrop from real navigation triangles, using the existing world-XY view.
-import { triangulatePolygons, clipSurfaceHeight } from './geometry-utils.js';
-
+// Precomputed floor outlines: no triangles are read or looped over here.
 const cache = new WeakMap();
-const invalid = reason => ({ available: false, reason, drawnTriangles: 0, cacheHit: false });
-const record = vertex => ({ location: { X: vertex[0], Y: vertex[1], Z: vertex[2] } });
+const invalid = reason => ({ available: false, reason, drawnLayers: 0, cacheHit: false });
+const record = (x, y) => ({ location: { X: x, Y: y, Z: 0 } });
 
-/**
- * project accepts the same {location:{X,Y,Z}} points as createMapView().project.
- * canvas coordinates are the SVG's logical 760x590 units. Apply pan/zoom to its
- * enclosing SVG group, rather than rebuilding the world-space path on each drag.
- * heightRange is [minZ,maxZ] in UE centimeters; focusBounds only rejects distant
- * triangles and does not pretend to be a physical map boundary.
- */
 export function drawTerrain2D(canvas, geometry, project, options = {}) {
   let context;
   try { context = canvas?.getContext('2d'); } catch { return invalid('canvas-unavailable'); }
   if (!context || typeof project !== 'function') return invalid('canvas-unavailable');
-  if (geometry?.format !== 1 || geometry.unit !== 'cm' || geometry.coordinateSystem !== 'Unreal Z-up' || !Array.isArray(geometry.vertices)) return invalid('invalid-navigation-data');
-  const vertices = geometry.vertices;
-  let indices;
-  try { indices = geometry.indices ?? triangulatePolygons(geometry.polygons, vertices.length); } catch { return invalid('invalid-navigation-data'); }
-  if (!(Array.isArray(indices) || ArrayBuffer.isView(indices)) || indices.length % 3) return invalid('invalid-navigation-data');
-  const range = options.heightRange ?? [-Infinity, Infinity];
-  const minZ = range[0] ?? -Infinity, maxZ = range[1] ?? Infinity;
-  if (Number.isNaN(minZ) || Number.isNaN(maxZ) || minZ > maxZ) return invalid('invalid-height-range');
-  const bounds = options.focusBounds;
-  const minX = bounds?.min?.[0] ?? bounds?.minX ?? -Infinity, maxX = bounds?.max?.[0] ?? bounds?.maxX ?? Infinity;
-  const minY = bounds?.min?.[1] ?? bounds?.minY ?? -Infinity, maxY = bounds?.max?.[1] ?? bounds?.maxY ?? Infinity;
-  const probe = vertices[0];
-  if (!probe || !probe.every(Number.isFinite)) return invalid('invalid-navigation-data');
-  let signature;
-  try {
-    const projected = [probe, [probe[0] + 100, probe[1], probe[2]], [probe[0], probe[1] + 100, probe[2]]].map(vertex => project(record(vertex)));
-    if (projected.some(point => !point || !Number.isFinite(point.x) || !Number.isFinite(point.y))) return invalid('world-projection-required');
-    signature = JSON.stringify([canvas.width, canvas.height, minZ, maxZ, minX, maxX, minY, maxY, ...projected.flatMap(point => [point.x, point.y])].map(value => Number.isFinite(value) ? value : String(value)));
-  } catch { return invalid('world-projection-required'); }
+  if (geometry?.format !== 2 || !Array.isArray(geometry.layers)) return invalid('invalid-outline-data');
+  const [minZ = -Infinity, maxZ = Infinity] = options.heightRange ?? [];
+  if (minZ > maxZ || Number.isNaN(minZ) || Number.isNaN(maxZ)) return invalid('invalid-height-range');
+  const probe = geometry.bounds?.min ?? [0, 0];
+  const origin = project(record(probe[0], probe[1]));
+  const east = project(record(probe[0] + 100, probe[1]));
+  const north = project(record(probe[0], probe[1] + 100));
+  if (![origin, east, north].every(p => p && Number.isFinite(p.x) && Number.isFinite(p.y))) return invalid('world-projection-required');
+  const selected = geometry.layers.filter(layer => layer.maxZ >= minZ && layer.minZ <= maxZ && (!options.bandId || layer.bandId === options.bandId));
+  const signature = JSON.stringify([canvas.width, canvas.height, origin, east, north, selected.map(layer => layer.id ?? `${layer.bandId}:${layer.minZ}`)]);
   let entries = cache.get(geometry);
   if (!entries) { entries = new Map(); cache.set(geometry, entries); }
   let prepared = entries.get(signature), cacheHit = Boolean(prepared);
   if (!prepared) {
     const Path = canvas.ownerDocument?.defaultView?.Path2D ?? globalThis.Path2D;
     if (!Path) return invalid('canvas-path-unavailable');
-    const path = new Path(); let drawnTriangles = 0;
-    try {
-      for (let index = 0; index < indices.length; index += 3) {
-        const triangle = [vertices[indices[index]], vertices[indices[index + 1]], vertices[indices[index + 2]]];
-        if (triangle.some(vertex => !vertex || vertex.length !== 3 || !vertex.every(Number.isFinite))) return invalid('invalid-navigation-data');
-        if (Math.max(...triangle.map(vertex => vertex[0])) < minX || Math.min(...triangle.map(vertex => vertex[0])) > maxX || Math.max(...triangle.map(vertex => vertex[1])) < minY || Math.min(...triangle.map(vertex => vertex[1])) > maxY || Math.max(...triangle.map(vertex => vertex[2])) < minZ || Math.min(...triangle.map(vertex => vertex[2])) > maxZ) continue;
-        const polygon = clipSurfaceHeight(triangle, minZ, maxZ);
-        if (polygon.length < 3) continue;
-        const points = polygon.map(vertex => project(record(vertex)));
-        if (points.some(point => !point || !Number.isFinite(point.x) || !Number.isFinite(point.y))) continue;
-        path.moveTo(points[0].x, points[0].y);
-        for (const point of points.slice(1)) path.lineTo(point.x, point.y);
-        path.closePath(); drawnTriangles++;
+    const xx = (east.x - origin.x) / 100, xy = (east.y - origin.y) / 100;
+    const yx = (north.x - origin.x) / 100, yy = (north.y - origin.y) / 100;
+    const paths = []; let coordinates = 0;
+    for (const layer of selected) {
+      const path = new Path();
+      for (const polygon of layer.polygons) for (const ring of polygon) {
+        for (let i = 0; i < ring.length; i++) {
+          const x = ring[i][0] - probe[0], y = ring[i][1] - probe[1];
+          const px = origin.x + x * xx + y * yx, py = origin.y + x * xy + y * yy;
+          if (!i) path.moveTo(px, py); else path.lineTo(px, py);
+          coordinates++;
+        }
+        path.closePath();
       }
-    } catch { return invalid('invalid-navigation-data'); }
-    prepared = { path, drawnTriangles }; entries.set(signature, prepared);
-    if (entries.size > 4) entries.delete(entries.keys().next().value);
+      paths.push(path);
+    }
+    prepared = { paths, coordinates }; entries.set(signature, prepared);
+    if (entries.size > 2) entries.delete(entries.keys().next().value);
   }
-  context.save();
-  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.save(); context.setTransform(1, 0, 0, 1, 0, 0);
   if (options.clear !== false) context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = options.fill ?? 'rgba(43,130,204,0.35)'; context.fill(prepared.path);
-  context.strokeStyle = options.stroke ?? 'rgba(154,209,255,0.14)'; context.lineWidth = options.lineWidth ?? 0.55; context.stroke(prepared.path);
+  context.fillStyle = options.fill ?? 'rgba(78,151,200,0.45)';
+  for (const path of prepared.paths) context.fill(path, 'evenodd');
   context.restore();
-  return { available: true, sourceTriangles: indices.length / 3, drawnTriangles: prepared.drawnTriangles, cacheHit };
+  return { available: true, drawnLayers: selected.length, coordinates: prepared.coordinates, cacheHit };
 }
 
 export function clearTerrain2DCache(geometry) { cache.delete(geometry); }

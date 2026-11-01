@@ -21,14 +21,22 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 ## 数据流与模块职责
 
 ```text
+页面与地图浏览
+  → catalog.json / catalog.en.json
+  → app.js：物品清单、游戏 UV、当前地图图像
+  → 1024 预览；放大到 2 倍后按需读取 2048 细节
+
 用户选择 .sav
   → save-codec.js：容器校验、认证解密、限额解压、JSON 读取
   → 按保存时间选择默认槽位
   → completion.js：结合 catalog.json 计算点位与任务状态
   → app.js：筛选、统计、详情与导出
-  → terrain-data.js：按需加载导航表面与高度区域
-  → terrain-2d.js / terrain-view.js：2D 地形或 Three.js 3D
-  → map-view.js：世界 XY 布局；另支持独立游戏 UV 模式
+
+可选楼层显示
+  → terrain-data.js：独立请求 2D 轮廓或 3D 楼层
+  → 2D：terrain-2d.js 绘制预处理轮廓
+  → 3D：Worker 解压解析 → typed buffer 转移 → terrain-view.js
+  → map-view.js：世界 XY 布局；游戏贴图始终使用独立 UV
 ```
 
 | 文件 | 职责 |
@@ -39,15 +47,18 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 | `public/css/app.css` | 响应式样式、焦点状态和减少动画支持 |
 | `public/js/app.js` | 文件选择、槽位切换、筛选、SVG 坐标图、任务日志、CSV |
 | `public/js/map-view.js` | 独立处理地图 UV 与世界 XY，固定画布、比例和刻度 |
-| `public/js/terrain-data.js` | 清单与 gzip 加载、完整性校验、共享世界缓存、高度区域 |
-| `public/js/terrain-2d.js`、`terrain-view.js` | 导航三角形的 Canvas 2D / Three.js 3D 绘制与降级 |
-| `public/js/geometry-utils.js` | 原生坐标转换、三角索引、高度裁剪和取景辅助，不计算路线 |
+| `public/js/terrain-data.js` | 可选楼层清单、独立 2D / 3D 请求、取消与有限缓存 |
+| `public/js/terrain-worker.js`、`terrain-format.js` | 3D 解压、完整性校验、JSON 解析、typed array 转换和转移 |
+| `public/js/terrain-2d.js` | 预处理平面轮廓的 Canvas / Path2D 填充，不遍历 3D 三角形 |
+| `public/js/terrain-view.js` | 按需初始化的低模 Three.js 视图、平移旋转控制、暂停与清理 |
+| `public/js/geometry-utils.js` | 厘米坐标转换、flat / nested 几何、三角索引、取景和保持缩放的选点辅助 |
 | `public/js/i18n.js` | UI 翻译与不改变规则、几何的英文名称覆盖 |
 | `public/js/analytics.js` | 独立的交互页面访问计数，不读取存档或应用状态 |
 | `public/js/save-codec.js` | PBZS 3 读取、WebCrypto AES-GCM、zlib / 本地 ooz-wasm 解压 |
 | `public/js/completion.js` | 完成判定、周目判断、相关任务状态与附近铃铛 |
 | `public/data/catalog.json` | 界面所需的精简静态记录 |
-| `public/data/terrain/` | 9 个底层世界、12 个地图 ID 的派生导航表面 |
+| `public/data/map-images/` | 默认地图所需的 1024 预览与按需 2048 细节图 |
+| `public/data/terrain-low/` | 可选楼层轮廓、3D 楼层示意及各自的发布信息 |
 | `public/vendor/three/` | 本地固定版本 Three.js 与 OrbitControls，保留 MIT 许可证 |
 | `public/vendor/ooz-wasm/` | 固定版本 WASM 解码器、适配层、归属信息及对应源码 |
 | `scripts/validate_catalog.mjs` | 图鉴结构、标识、地图与坐标校验 |
@@ -88,13 +99,27 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 `catalog.json` 只保留公开应用需要的名称、类别、地图、世界坐标、逐点地图 UV、画布比例、判定标识、必要关联及任务目标。13 类、698 个点位是当前目录版本的范围，不是对全部可达内容的保证。
 
-v2 默认显示真实导航表面，并保留游戏 UV 与世界坐标。导航几何、共享世界、厘米到 Three.js 米制坐标及高度过滤详见[地形说明](TERRAIN.md)。不应从收集点位置拟合新地形、把取景框当作地图边界，或增加未经验证的连接与自动路线。
+2.1 默认地图使用游戏美术贴图与逐点 UV，不请求楼层清单或 3D 几何。预览和细节图在 `catalog.maps[].image` 记录；1024 预览按地图加载，2048 细节只在当前地图放大到 2 倍及以上时加载。共用图像可跨逻辑地图复用，不应一次预取所有细节图。
+
+可选楼层视图使用独立的 5 米高度层轮廓和粗略楼层平面。它们是经过清理的显示近似，不是原始高密度导航三角网或完整环境导出。坐标、共享世界和近似边界见[地形说明](TERRAIN.md)。不应从收集点重新拟合地面，或把取景框当成精确地图边界。
+
+3D 的解压与 JSON 处理放入 Worker，转换为 `positionsXYZ: Float64Array` 和 `indices: Uint32Array` 后通过 transfer list 发送，不复制成第二套嵌套数组。渲染器先减双精度原点再生成 Float32 GPU 位置；typed 索引 buffer 直接复用。Worker 结束后应释放其临时数据。
+
+`createTerrainView()` 保留一份当前世界的几何。同一对象切换取景或点位筛选，不应重新建立 GPU buffers；标记按键复用 DOM。默认关闭裙边和额外线框、禁用 MSAA，DPR 最高 1.5，只按操作请求帧。离开 3D 或更换世界时，应暂停并释放不再需要的资源：
+
+```js
+terrainView.setActive(false);
+terrainView.clearData();
+releaseTerrain('3d');
+```
+
+`setActive(false)` 取消待绘帧并把隐藏画布缩到 1×1；`clearData()` 释放 GPU 几何、标记与源数据引用，保留可复用的 renderer。重新载入后应重新应用当前选中物品。相机的普通 `select(key)` 保持缩放；显式 `focusSelection()` 才拉近。
 
 保留的 UV 模式沿用离线重建的游戏投影。世界 XY 本身不能还原游戏按 `GroupZ` 分组、再按命中高度选择的 UV 网格；离线预处理使用 Qhull，并重建裁切与插值规则。共圆点连边和边界细节尚未与运行中的游戏逐点比对。具体证据见[地图投影说明](MAP-PROJECTION.md)，站点运行与测试无需安装 Qhull。
 
 `createMapView(points, mapMetadata, options)` 接收原始记录对象。游戏模式要求有效的 `mapProjection` 和至少一个有 `mapPosition` 的点，使用左上原点、Y 向下的 UV，并保持画布比例；缺 UV 的点返回 `null`，不混入世界坐标。传入 `options.mode: "world"` 可强制使用世界 XY。图层应以整个分区的点创建布局，再绘制筛选结果，避免类别筛选改变范围；世界模式也可通过 `mapMetadata.worldBounds` 固定边界。
 
-四种模式都保留原生 XYZ，附近铃铛和 CSV 继续使用原生坐标。游戏自身的图标避让可能移动截图中的标记；离线 UV 不保证逐像素相同。公开地形是精简的派生导航表面，不附原始包、完整导出、UV 预处理锚点或贴图。
+各视图都保留原生 XYZ，附近铃铛和 CSV 继续使用原生坐标。游戏自身的图标避让可能移动截图中的标记；离线 UV 不保证逐像素相同。当前站点只加载所需的贴图预览、细节图与楼层示意。旧版高密度导航派生网格保留在源码 `public/data/terrain/` 供回归比较，页面不请求，打包时排除；原始包、原始 UV 锚点或整套场景资产不属于发布内容。安装资源中有 HLOD，但项目尚未形成可验证的完整场景导出，不作为当前网页数据。
 
 更新目录时：
 
@@ -184,7 +209,7 @@ npm test
 npm run package
 ```
 
-`npm run package` 调用 `python scripts/package.py`，也可以直接执行后者。打包脚本需要 Python 3，只读取 `public/`，输出 `dist/PBZItemlist.zip`；ZIP 内不再套一层 `public/` 目录。脚本会检查禁止分发的文件扩展名、路径结构、UTF-8 文本和 ZIP 完整性，并输出文件数量、大小与 SHA-256。
+`npm run package` 调用 `python scripts/package.py`，也可以直接执行后者。打包脚本需要 Python 3，只读取 `public/` 并排除旧版 `data/terrain/**`，输出 `dist/PBZItemlist.zip`；ZIP 内不再套一层 `public/` 目录。脚本检查允许分发的资源类型、路径结构、文本编码和 ZIP 完整性，并输出文件数量、大小与 SHA-256；地图 WebP 与当前楼层 gzip 是静态站点资源。
 
 脚本不代替 `npm test`，因此发布前应先执行测试。发布清单不应包含个人存档、解密进度、开发缓存、`node_modules/`、服务器凭据或完整游戏解包资料。`dist/` 为生成目录，不作为源码提交。
 

@@ -1,0 +1,187 @@
+{
+  "kind": "in-game map artwork",
+  "source": "DT_MapData.MapTextures[0]",
+  "conversion": "DXT1 decoded, uniformly resized to 1024/2048 wide and WebP encoded. No crop, rotation, mirror or generated repaint.",
+  "images": [
+    {
+      "asset": "T_MapTest_Xigu_0710",
+      "mapIds": [
+        "XiGu"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-c9525bac7dcb44d3-1024.webp",
+          "bytes": 134292,
+          "sha256": "c9525bac7dcb44d34d3f4480d49f0a466c2b093a3095477c3ff3f46eacba9c1c"
+        },
+        {
+          "file": "map-093595a4c71dfc7d-2048.webp",
+          "bytes": 503718,
+          "sha256": "093595a4c71dfc7d318a636b0f1116d16cb3795c8e2652d66fcb0eabaa3701fa"
+        }
+      ]
+    },
+    {
+      "asset": "T_MapTest_Fujizhilin_0717",
+      "mapIds": [
+        "FuJiZhiLin"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-32d83e347241ca14-1024.webp",
+          "bytes": 93042,
+          "sha256": "32d83e347241ca14cc1f29ed0ed580a4f662539b691c691c8ad7f094362c2936"
+        },
+        {
+          "file": "map-6f55747d8d700d96-2048.webp",
+          "bytes": 379718,
+          "sha256": "6f55747d8d700d966882e5f5fa4d98a661fd87601d38bad455a5a46dbf00910f"
+        }
+      ]
+    },
+    {
+      "asset": "T_MapTest_Lujiacun_0710",
+      "mapIds": [
+        "LuJiaCun"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-db800acfd5af6190-1024.webp",
+          "bytes": 94268,
+          "sha256": "db800acfd5af6190c32777bb88fb5ec6c017dfc411a7a5a8450854479a0d01d1"
+        },
+        {
+          "file": "map-8da87b16d9f4583a-2048.webp",
+          "bytes": 399998,
+          "sha256": "8da87b16d9f4583a5dedb4b1a6bed81955facc0e454a1398864e505574061a0c"
+        }
+      ]
+    },
+    {
+      "asset": "T_Map_PZ_8k",
+      "mapIds": [
+        "PangZhen",
+        "HouJie",
+        "XiMeng"
+      ],
+      "sourceSize": [
+        8192,
+        4512
+      ],
+      "files": [
+        {
+          "file": "map-1d43aa5f0f0b5f3f-1024.webp",
+          "bytes": 53104,
+          "sha256": "1d43aa5f0f0b5f3fca2e5dd288b09abdf9a8bad496096eeaa56be1bf6657c506"
+        },
+        {
+          "file": "map-a2d965ac1ac205a8-2048.webp",
+          "bytes": 231720,
+          "sha256": "a2d965ac1ac205a819d326f132d50733b0afff32582232035b12ab4aa76beb25"
+        }
+      ]
+    },
+    {
+      "asset": "T_Map_DaYing_8k",
+      "mapIds": [
+        "ZhengDaoDaYing"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-751f5243fbf8f434-1024.webp",
+          "bytes": 102606,
+          "sha256": "751f5243fbf8f434d6d6a753128440d70b5fd3ddf4563db7954dd0b217bde32f"
+        },
+        {
+          "file": "map-8047b82b9c3e94e5-2048.webp",
+          "bytes": 481504,
+          "sha256": "8047b82b9c3e94e5f7f52280fb3c30a24010dbc1f28cde58c5b30d877c91399e"
+        }
+      ]
+    },
+    {
+      "asset": "T_MapTest_MGH0717",
+      "mapIds": [
+        "MeiGuHu",
+        "MeiGu_YiJi"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-8973764147871e7a-1024.webp",
+          "bytes": 89272,
+          "sha256": "8973764147871e7a0161e71885d9a01045082549340fdda4c05eea18aa2e3a14"
+        },
+        {
+          "file": "map-513ced282e317d80-2048.webp",
+          "bytes": 319882,
+          "sha256": "513ced282e317d80ef69cf87a3258d60cb8e4a011854a64a9db9a13e924a4467"
+        }
+      ]
+    },
+    {
+      "asset": "T_Map_DDSD",
+      "mapIds": [
+        "DengDingShanDao"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-ce6a2ff7bf03a406-1024.webp",
+          "bytes": 140614,
+          "sha256": "ce6a2ff7bf03a4069a3f75fd7615a744ac14875407ec2a627539f35efa276ec3"
+        },
+        {
+          "file": "map-0255b90c7e689324-2048.webp",
+          "bytes": 600948,
+          "sha256": "0255b90c7e6893240e4f50593e2b4a03bce503a77271a10afba7e27a6ca83029"
+        }
+      ]
+    },
+    {
+      "asset": "T_MapTest_DH",
+      "mapIds": [
+        "DuanHunYa",
+        "DuanHunShan"
+      ],
+      "sourceSize": [
+        8192,
+        8192
+      ],
+      "files": [
+        {
+          "file": "map-49fb2be92b70c1e8-1024.webp",
+          "bytes": 70186,
+          "sha256": "49fb2be92b70c1e8871f11c7d1d3b04ca9e0124c8d133e19e6131fcc113fb1e9"
+        },
+        {
+          "file": "map-cd3baa3f3f82d8e7-2048.webp",
+          "bytes": 433870,
+          "sha256": "cd3baa3f3f82d8e7b6bbb3ba31fda215a0cf2dc2ca21bfa52b4174c28418b6f9"
+        }
+      ]
+    }
+  ]
+}

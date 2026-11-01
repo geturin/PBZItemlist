@@ -34,6 +34,36 @@ export function centerOfBounds(bounds) {
   return bounds.min.map((value, axis) => value + (bounds.max[axis] - value) / 2);
 }
 
+/** Both worker-transferred Float64 XYZ and the legacy nested format are valid. */
+export function terrainVertexCount(mesh) {
+  const flat = mesh?.positionsXYZ;
+  if (flat != null) return (Array.isArray(flat) || ArrayBuffer.isView(flat) && !(flat instanceof DataView)) && flat.length % 3 === 0 ? flat.length / 3 : 0;
+  return Array.isArray(mesh?.vertices) ? mesh.vertices.length : 0;
+}
+
+export function terrainVertexAt(mesh, index, out = [0, 0, 0]) {
+  if (!Number.isInteger(index) || index < 0 || index >= terrainVertexCount(mesh)) return null;
+  if (mesh.positionsXYZ != null) {
+    const offset = index * 3;
+    out[0] = mesh.positionsXYZ[offset]; out[1] = mesh.positionsXYZ[offset + 1]; out[2] = mesh.positionsXYZ[offset + 2];
+  } else {
+    const vertex = mesh.vertices[index];
+    if (!Array.isArray(vertex) || vertex.length !== 3) return null;
+    out[0] = vertex[0]; out[1] = vertex[1]; out[2] = vertex[2];
+  }
+  return Number.isFinite(out[0]) && Number.isFinite(out[1]) && Number.isFinite(out[2]) ? out : null;
+}
+
+export function terrainBounds(mesh) {
+  const count = terrainVertexCount(mesh), vertex = [0, 0, 0];
+  const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+  for (let index = 0; index < count; index++) {
+    if (!terrainVertexAt(mesh, index, vertex)) throw new Error('Invalid navigation vertices');
+    for (let axis = 0; axis < 3; axis++) { min[axis] = Math.min(min[axis], vertex[axis]); max[axis] = Math.max(max[axis], vertex[axis]); }
+  }
+  return count ? { min, max } : null;
+}
+
 /** Detour ground polygons are convex; fan triangulation preserves their surface. */
 export function triangulatePolygons(polygons, vertexCount) {
   if (!Array.isArray(polygons)) throw new Error('Navigation polygons are missing');
@@ -50,20 +80,28 @@ export function triangulatePolygons(polygons, vertexCount) {
 /** Keeps indexed triangle order intact so native zBand draw ranges remain valid. */
 export function prepareTerrainGeometry(mesh, options = {}) {
   if (mesh?.format !== 1 || mesh.unit !== 'cm' || mesh.coordinateSystem !== 'Unreal Z-up') throw new Error('Unsupported navigation geometry format');
-  if (!Array.isArray(mesh.vertices) || mesh.vertices.length < 3 || !mesh.vertices.every(vertex => Array.isArray(vertex) && vertex.length === 3 && vertex.every(Number.isFinite))) throw new Error('Invalid navigation vertices');
-  const bounds = boundsOf(mesh.vertices);
+  const count = terrainVertexCount(mesh);
+  if (count < 3) throw new Error('Invalid navigation vertices');
+  const bounds = terrainBounds(mesh);
   const origin = options.origin ? worldLocation(options.origin) : centerOfBounds(bounds);
   if (!origin) throw new Error('Invalid geometry origin');
   let indices;
   if (mesh.indices != null) {
     if (!(Array.isArray(mesh.indices) || ArrayBuffer.isView(mesh.indices)) || mesh.indices.length % 3 || !mesh.indices.length) throw new Error('Invalid navigation triangle indices');
-    if (!Array.from(mesh.indices).every(index => Number.isInteger(index) && index >= 0 && index < mesh.vertices.length)) throw new Error('Navigation index out of range');
-    indices = new Uint32Array(mesh.indices);
-  } else indices = triangulatePolygons(mesh.polygons, mesh.vertices.length);
+    for (let index = 0; index < mesh.indices.length; index++) if (!Number.isInteger(mesh.indices[index]) || mesh.indices[index] < 0 || mesh.indices[index] >= count) throw new Error('Navigation index out of range');
+    // Transferred typed indices already have a GPU-compatible buffer. Reuse it.
+    indices = mesh.indices instanceof Uint32Array || mesh.indices instanceof Uint16Array ? mesh.indices : count <= 65535 ? new Uint16Array(mesh.indices) : new Uint32Array(mesh.indices);
+  } else indices = triangulatePolygons(mesh.polygons, count);
   if (!indices.length) throw new Error('Navigation surface is empty');
-  const positions = new Float32Array(mesh.vertices.length * 3);
-  mesh.vertices.forEach((vertex, index) => positions.set(worldToThree(vertex, origin), index * 3));
-  return { positions, indices, origin, bounds, vertexCount: mesh.vertices.length, triangleCount: indices.length / 3 };
+  const positions = new Float32Array(count * 3), flat = mesh.positionsXYZ;
+  for (let index = 0; index < count; index++) {
+    const offset = index * 3, vertex = flat == null ? mesh.vertices[index] : flat;
+    const input = flat == null ? 0 : offset;
+    positions[offset] = (vertex[input] - origin[0]) / 100;
+    positions[offset + 1] = (vertex[input + 2] - origin[2]) / 100;
+    positions[offset + 2] = -(vertex[input + 1] - origin[1]) / 100;
+  }
+  return { positions, indices, origin, bounds, vertexCount: count, triangleCount: indices.length / 3 };
 }
 
 /** Thin decorative skirts follow existing boundary edges; they are not new ground. */
@@ -124,5 +162,18 @@ export function clipSurfaceHeight(vertices, min = -Infinity, max = Infinity) {
 /** Focus bounds are a camera hint, never a fabricated region boundary. */
 export function terrainViewBounds(mesh, points, supplied) {
   if (validBounds(supplied)) return { min: [...supplied.min], max: [...supplied.max] };
-  return boundsOf(points) ?? boundsOf(mesh.vertices);
+  return boundsOf(points) ?? (validBounds(mesh?.bounds) ? { min: [...mesh.bounds.min], max: [...mesh.bounds.max] } : terrainBounds(mesh));
+}
+
+/** Changing a selected target pans the camera without silently changing zoom. */
+export function cameraPoseAtTarget(camera, target, nextTarget, distance) {
+  const cameraXYZ = worldLocation(camera), targetXYZ = worldLocation(target), nextXYZ = worldLocation(nextTarget);
+  if (!cameraXYZ || !targetXYZ || !nextXYZ) return null;
+  let dx = cameraXYZ[0] - targetXYZ[0], dy = cameraXYZ[1] - targetXYZ[1], dz = cameraXYZ[2] - targetXYZ[2];
+  const length = Math.hypot(dx, dy, dz);
+  if (Number.isFinite(distance) && distance > 0) {
+    if (length > 0) { const scale = distance / length; dx *= scale; dy *= scale; dz *= scale; }
+    else { dx = distance / Math.sqrt(3); dy = dx; dz = dx; }
+  }
+  return { position: [nextXYZ[0] + dx, nextXYZ[1] + dy, nextXYZ[2] + dz], target: nextXYZ };
 }
