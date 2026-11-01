@@ -2,7 +2,13 @@
 
 《影之刃零》的浏览器本地存档查漏工具。选择自己的 `.sav` 文件，核对收集点位、铃铛和任务记录，再结合游戏地图投影或原生坐标继续探索。
 
-**[在线使用](https://blog.kero.zone/)** · [使用指南](docs/USAGE.md) · [开发说明](docs/DEVELOPMENT.md) · [参与贡献](CONTRIBUTING.md)
+## 在线使用
+
+**[https://blog.kero.zone/](https://blog.kero.zone/)**
+
+打开网页后选择自己的 `.sav` 文件即可，存档在浏览器本地解析，无需安装。
+
+[使用指南](docs/USAGE.md) · [开发说明](docs/DEVELOPMENT.md) · [参与贡献](CONTRIBUTING.md)
 
 当前目录包含 **13 类、698 个收集点位**，另有任务名称与分支目标说明。点位数量是本工具的数据口径，不等同于游戏内物品总数或地图完成度。
 
