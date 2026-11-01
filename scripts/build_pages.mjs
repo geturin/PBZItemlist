@@ -18,6 +18,9 @@ const PAGES = [
 // Static template keys live here when they are not part of the runtime dictionary.
 // Keeping the fallback explicit makes missing translations a build error.
 const STATIC_EN = {
+  'ui.saveLocationTitle': 'Where is my save?',
+  'ui.saveLocationStart': 'Steam: right-click the game → Manage → Browse local files. Open',
+  'ui.saveLocationEnd': ', enter the numbered account folder, and choose PBZSaveGame.sav.',
   'ui.collectiblesGuide': 'Collectible guides',
   'portal.title': 'Game Collectible Checkers',
   'portal.description': 'Choose a game to browse its collection checklist and check for missed items.',
