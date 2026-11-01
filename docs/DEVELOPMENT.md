@@ -1,6 +1,6 @@
 # 开发说明
 
-本项目为无构建步骤的静态应用。用户提供的存档只在页面内存中读取、解码和分析，站点无需后端、数据库或账号。
+检查器是静态应用，已有 `public/` 可直接运行；维护双语模板时通过 `npm run build` 更新英文页面。存档只在页面内存中读取、解码和分析，不需要后端、数据库或玩家账号。线上访问计数是独立的可选部署服务，不参与存档处理，见[隐私说明](PRIVACY.md)。
 
 ## 环境与常用命令
 
@@ -11,6 +11,7 @@
 
 ```sh
 npm ci
+npm run build
 npm test
 python -m http.server 8767 --bind 127.0.0.1 --directory public
 ```
@@ -25,18 +26,29 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
   → 按保存时间选择默认槽位
   → completion.js：结合 catalog.json 计算点位与任务状态
   → app.js：筛选、统计、详情与导出
-  → map-view.js：游戏地图投影或世界坐标的绘图布局
+  → terrain-data.js：按需加载导航表面与高度区域
+  → terrain-2d.js / terrain-view.js：2D 地形或 Three.js 3D
+  → map-view.js：世界 XY 布局；另支持独立游戏 UV 模式
 ```
 
 | 文件 | 职责 |
 | --- | --- |
-| `public/index.html` | 页面语义结构、对话框及内容安全策略 |
+| `public/index.html` | 极简游戏工具入口 |
+| `public/phantom-blade-zero/index.html` | 中文检查器模板、对话框与内容安全策略 |
+| `scripts/build_pages.mjs` | 生成两份英文静态页、SEO 互链、站点地图与 robots.txt |
 | `public/css/app.css` | 响应式样式、焦点状态和减少动画支持 |
 | `public/js/app.js` | 文件选择、槽位切换、筛选、SVG 坐标图、任务日志、CSV |
 | `public/js/map-view.js` | 独立处理地图 UV 与世界 XY，固定画布、比例和刻度 |
+| `public/js/terrain-data.js` | 清单与 gzip 加载、完整性校验、共享世界缓存、高度区域 |
+| `public/js/terrain-2d.js`、`terrain-view.js` | 导航三角形的 Canvas 2D / Three.js 3D 绘制与降级 |
+| `public/js/geometry-utils.js` | 原生坐标转换、三角索引、高度裁剪和取景辅助，不计算路线 |
+| `public/js/i18n.js` | UI 翻译与不改变规则、几何的英文名称覆盖 |
+| `public/js/analytics.js` | 独立的交互页面访问计数，不读取存档或应用状态 |
 | `public/js/save-codec.js` | PBZS 3 读取、WebCrypto AES-GCM、zlib / 本地 ooz-wasm 解压 |
 | `public/js/completion.js` | 完成判定、周目判断、相关任务状态与附近铃铛 |
 | `public/data/catalog.json` | 界面所需的精简静态记录 |
+| `public/data/terrain/` | 9 个底层世界、12 个地图 ID 的派生导航表面 |
+| `public/vendor/three/` | 本地固定版本 Three.js 与 OrbitControls，保留 MIT 许可证 |
 | `public/vendor/ooz-wasm/` | 固定版本 WASM 解码器、适配层、归属信息及对应源码 |
 | `scripts/validate_catalog.mjs` | 图鉴结构、标识、地图与坐标校验 |
 | `scripts/package.py` | 仅将 `public/` 内容打包为部署 ZIP |
@@ -76,11 +88,13 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 `catalog.json` 只保留公开应用需要的名称、类别、地图、世界坐标、逐点地图 UV、画布比例、判定标识、必要关联及任务目标。13 类、698 个点位是当前目录版本的范围，不是对全部可达内容的保证。
 
-1.1.0 默认使用离线重建的游戏地图投影。旧版查看器把世界 XY 平面直接绘制为 X 向右、Y 向上的图，不能还原游戏按 `GroupZ` 分组、再按命中高度选择的锚点三角网格 UV，所以铃铛的相对方向可能不同。重建时使用 Qhull 生成 XY Delaunay 三角网，再按已确认的原生裁切、命中筛选和插值规则计算逐点 UV；Qhull 的共圆点连边及边界细节尚未与运行中的游戏比对。具体规则和证据见[地图投影说明](MAP-PROJECTION.md)。该预处理不在浏览器执行，运行或测试站点无需安装 Qhull。
+v2 默认显示真实导航表面，并保留游戏 UV 与世界坐标。导航几何、共享世界、厘米到 Three.js 米制坐标及高度过滤详见[地形说明](TERRAIN.md)。不应从收集点位置拟合新地形、把取景框当作地图边界，或增加未经验证的连接与自动路线。
+
+保留的 UV 模式沿用离线重建的游戏投影。世界 XY 本身不能还原游戏按 `GroupZ` 分组、再按命中高度选择的 UV 网格；离线预处理使用 Qhull，并重建裁切与插值规则。共圆点连边和边界细节尚未与运行中的游戏逐点比对。具体证据见[地图投影说明](MAP-PROJECTION.md)，站点运行与测试无需安装 Qhull。
 
 `createMapView(points, mapMetadata, options)` 接收原始记录对象。游戏模式要求有效的 `mapProjection` 和至少一个有 `mapPosition` 的点，使用左上原点、Y 向下的 UV，并保持画布比例；缺 UV 的点返回 `null`，不混入世界坐标。传入 `options.mode: "world"` 可强制使用世界 XY。图层应以整个分区的点创建布局，再绘制筛选结果，避免类别筛选改变范围；世界模式也可通过 `mapMetadata.worldBounds` 固定边界。
 
-两种模式都保留原生 XYZ，附近铃铛和 CSV 继续使用原生坐标。游戏自身的图标避让可能移动截图中的标记；离线投影不保证逐像素相同，也不提供路线导航。公开图鉴不包含用于预处理的原始锚点、网格或贴图。
+四种模式都保留原生 XYZ，附近铃铛和 CSV 继续使用原生坐标。游戏自身的图标避让可能移动截图中的标记；离线 UV 不保证逐像素相同。公开地形是精简的派生导航表面，不附原始包、完整导出、UV 预处理锚点或贴图。
 
 更新目录时：
 
@@ -93,15 +107,7 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 ## 自动化测试
 
-`npm test` 是默认入口，按以下顺序执行。任一步失败都会停止后续步骤。
-
-| 顺序 | 脚本 | 默认覆盖 |
-| --- | --- | --- |
-| 1 | `scripts/validate_catalog.mjs` | 13 类、698 点位及铃铛／任务引用；编号唯一性、地图归属、字段与坐标格式 |
-| 2 | `tests/completion.test.mjs` | 分类规则、缺失字段、周目、待确认边界及任务状态 |
-| 3 | `tests/map-view.test.mjs` | UV 方向、贴图比例、固定画布、部分命中、非法点、世界坐标回退及强制切换 |
-| 4 | `scripts/test_codec.mjs` | 合成检查：认证、zlib、排序、格式与长度边界，以及真实 WASM 解码合成 Oodle stored frame |
-| 5 | `tests/ui.test.mjs` | DOM 仿真检查，包括图鉴类别、中性空态、位置浏览、投影模式与不携带存档的 GET 请求 |
+`npm test` 是默认入口，具体顺序以 `package.json` 为准，任一步失败即停止。当前包含生成一致性、双语路由、图鉴与完成规则、UV、英文覆盖、地形加载／绘制／整包校验、访问统计、解码器及两种语言的完整 UI 回归。逐项命令与限制见[测试说明](TESTING.md)。
 
 各脚本用例数量以本次测试输出为准，不将 UI 数量绑定到固定版本的条目数。
 
@@ -115,7 +121,7 @@ DOM 仿真检查不是实际浏览器验收，不能证明视觉布局、移动�
 
 #### UI 回归：`PBZ_TEST_SAVE`
 
-令 `PBZ_TEST_SAVE` 指向自己持有的有效 `.sav` 文件，然后运行 `npm test`。这个变量由 `tests/ui.test.mjs` 读取，用于增加载入、槽位切换、筛选、详情、任务记录、CSV 和清空会话等 DOM 回归；**`scripts/test_codec.mjs` 不读取此变量**。
+令 `PBZ_TEST_SAVE` 指向自己持有的有效 `.sav` 文件，然后运行 `npm test`。这个变量由 `tests/ui.test.mjs` 读取，以真实输入替代默认合成双槽存档，执行相同的导入、切槽、筛选、详情、任务和 CSV 回归；**`scripts/test_codec.mjs` 不读取此变量**。
 
 PowerShell：
 
@@ -158,7 +164,8 @@ private-fixture/
 
 ## 隐私与前端安全
 
-- 保持所选存档在本地处理，不新增上传、遥测、账号或浏览器持久化流程。
+- 保持所选存档在本地处理，不向访问计数或其他请求传入存档、文件名、槽位、搜索词及分析状态；不新增玩家进度的浏览器持久化。
+- 独立访问统计只允许固定公开页面的交互访问计数，保留 DNT／GPC 与停用偏好，不能演变为收集事件跟踪；详见[隐私说明](PRIVACY.md)。
 - 将文件名、槽位名、任务和其他动态文本作为文本节点插入；不要用 `innerHTML` 拼接存档内容。
 - CSV 导出保留公式注入防护，负数坐标等合法数值应保持可用。
 - 依赖与 WASM 从同源静态目录加载，不临时改为远程 CDN。
@@ -167,11 +174,12 @@ private-fixture/
 
 ## 静态部署
 
-发布根目录为 `public/`，无需 Node 服务或数据库。站点资源需保持相对路径关系，并通过 HTTPS 提供。
+发布根目录为 `public/`，检查器无需 Node 服务或数据库；可选统计服务独立部署。保留 `/`、`/en/`、`/phantom-blade-zero/` 与 `/phantom-blade-zero/en/` 的静态目录路由，通过 HTTPS 提供。
 
 在项目根目录执行：
 
 ```sh
+npm run build
 npm test
 npm run package
 ```
@@ -181,6 +189,8 @@ npm run package
 脚本不代替 `npm test`，因此发布前应先执行测试。发布清单不应包含个人存档、解密进度、开发缓存、`node_modules/`、服务器凭据或完整游戏解包资料。`dist/` 为生成目录，不作为源码提交。
 
 项目源码直接在 GitHub 仓库提供，不生成 `source.zip` 或上游 tar 归档。第三方对应源码保留在 `public/vendor/ooz-wasm/source/`，随静态站点一起打包；发布时同时保留应用与第三方的许可证及归属信息。
+
+Three.js / OrbitControls 0.187.0 使用 MIT 许可证；保留 `public/vendor/three/LICENSE`、`ATTRIBUTION.md` 和 `PROVENANCE.json`。其本地导入调整与压缩记录在归属文件中，不使用运行时 CDN。该许可证与应用 GPL、ooz-wasm GPL 分别保留。
 
 ## ooz-wasm 及对应源码
 

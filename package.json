@@ -1,11 +1,12 @@
 {
   "name": "pbz-collector",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "test": "node scripts/validate_catalog.mjs && node tests/completion.test.mjs && node tests/map-view.test.mjs && node scripts/test_codec.mjs && node tests/ui.test.mjs",
+    "build": "node scripts/build_pages.mjs",
+    "test": "node scripts/build_pages.mjs --check && node scripts/validate_catalog.mjs && node tests/pages.test.mjs && node tests/completion.test.mjs && node tests/map-view.test.mjs && node tests/i18n.test.mjs && node tests/terrain-data.test.mjs && node tests/terrain-view.test.mjs && node tests/terrain-assets.test.mjs && node tests/analytics.test.mjs && node scripts/test_codec.mjs && node tests/ui.test.mjs && node tests/ui.test.mjs en",
     "package": "python scripts/package.py"
   },
   "engines": { "node": ">=20" },

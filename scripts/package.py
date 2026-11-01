@@ -11,7 +11,8 @@ for path in files:
     assert not path.is_symlink()
     assert path.suffix.lower() not in {'.sav','.pem','.key','.pfx','.uasset','.uexp','.ubulk','.ucas','.utoc','.pak'}
     assert path.name not in {'source.zip','upstream-source.tar.gz'}
-    assert path.read_bytes().decode('utf8'), 'This distribution uses text files, including embedded WASM JS'
+    if path.suffix.lower() not in {'.gz','.bin','.glb','.png','.jpg','.webp','.ico','.wasm'}:
+        assert path.read_bytes().decode('utf8'), 'Text assets must use UTF-8'
 archive=DIST/'PBZItemlist.zip'
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
     for path in files:z.write(path,path.relative_to(PUBLIC).as_posix())

@@ -13,14 +13,22 @@ npm ci --ignore-scripts
 npm test
 ```
 
-1.1.0 的 `npm test` 按顺序运行五步检查，任何一步失败都会停止：
+v2 的 `npm test` 按顺序运行以下检查，任何一步失败都会停止。修改静态模板或翻译后先执行 `npm run build`；测试不自动覆盖生成的页面。
 
 ```sh
+node scripts/build_pages.mjs --check
 node scripts/validate_catalog.mjs
+node tests/pages.test.mjs
 node tests/completion.test.mjs
 node tests/map-view.test.mjs
+node tests/i18n.test.mjs
+node tests/terrain-data.test.mjs
+node tests/terrain-view.test.mjs
+node tests/terrain-assets.test.mjs
+node tests/analytics.test.mjs
 node scripts/test_codec.mjs
 node tests/ui.test.mjs
+node tests/ui.test.mjs en
 ```
 
 排查问题时可以单独执行对应命令；正常完整检查执行一次 `npm test` 即可。
@@ -29,11 +37,17 @@ node tests/ui.test.mjs
 
 | 检查 | 命令 | 已核验的结果与范围 |
 | --- | --- | --- |
+| 生成与路由 | `node scripts/build_pages.mjs --check`、`node tests/pages.test.mjs` | 检查两份英文页、robots.txt、sitemap 可复现；四个静态路由的 canonical、hreflang、语言切换、资源路径、FAQ 与 JSON-LD 一致性；入口保持简洁，工具有四种地图模式与折叠详情。 |
 | 静态目录 | `node scripts/validate_catalog.mjs` | 检查 698 个点位、13 类目录、187 个铃铛参照和 80 条任务元数据，以及 ID 唯一性、地图和类别引用、坐标、条件关系和运行时目录不含原始解包来源字段。 |
 | 完成规则 | `node tests/completion.test.mjs` | 验证周目、Actor 与事件节点记录的存在性、已消耗钥匙、部分存档缺字段、任务关联与已知前置的区别，以及 13 类目录的状态统计。 |
 | 地图绘图 | `node tests/map-view.test.mjs` | 验证 UV 左上原点和 Y 向下、真实画布比例、筛选不改变游戏地图框、部分点无命中时不混用坐标系、非法点、强制世界坐标模式，以及固定世界范围。 |
-| 存档容器 | `node scripts/test_codec.mjs` | 无私有样本时 24 项合成测试，`private_fixture_used` 为 `false`。检查 WebCrypto AES-GCM、zlib 解压、目录与数据段认证、时间与槽位选择、重复名称、越界、重叠、尾随数据、解压长度和资源限制，并运行真实 Oodle WASM 模块的 stored frame 烟测。 |
-| 界面逻辑 | `node tests/ui.test.mjs` | 不设置 `PBZ_TEST_SAVE` 时，检查 13 类目录、载入前中性计数、公开界面无私人路线或独立攻略区块、未载入存档的位置浏览、游戏投影与世界坐标模式，以及模拟网络调用只使用不带存档内容的 GET。 |
+| 双语数据 | `node tests/i18n.test.mjs` | 核对游戏英文名称样本和名称覆盖、中文搜索原文、缺译回退；翻译不改变 ID、坐标、规则、完成判定或铃铛距离。 |
+| 地形加载 | `node tests/terrain-data.test.mjs` | 几何格式、索引与有限值校验，高度区域选择及地图取景框回退。 |
+| 地形绘制 | `node tests/terrain-view.test.mjs` | 厘米与 Three.js 轴转换、原点处理、源三角索引、边缘显示厚度、高度裁剪、Canvas 路径缓存和 WebGL 不可用时的安全回退；不启动真实 GPU。 |
+| 发布地形 | `node tests/terrain-assets.test.mjs` | 全部 9 个世界／12 个地图清单的 gzip 大小、JSON 大小、SHA-256、顶点／三角形数和连续高度分组；拒绝原始包名及私人路径，并以三个不同塔层的铃铛检验 XYZ 对齐。 |
+| 访问计数 | `node tests/analytics.test.mjs` | 固定公开路由、首次真实交互门槛、每次页面加载最多一次、隐藏页与脚本事件排除、机器人／DNT／GPC／停用偏好、来源仅保留 origin，无私人请求体。 |
+| 存档容器 | `node scripts/test_codec.mjs` | 默认使用合成数据，`private_fixture_used` 为 `false`。检查 WebCrypto AES-GCM、zlib、认证、时间与槽位选择、重复名称、越界、重叠、尾随数据、解压长度和资源限制，并运行真实 Oodle WASM 的 stored frame 烟测。 |
+| 双语界面 | `node tests/ui.test.mjs`、`node tests/ui.test.mjs en` | 默认使用合成加密双槽存档和小型 gzip 地形。覆盖三态统计、切槽、任务四状态、CSV 原生 XYZ、清空／错误、中文名搜索、默认 2D 地形按需加载、实际 Path2D 填充、高度过滤、无标记区域仍画表面、3D 不支持时回到 2D，以及显式游戏 UV／世界坐标切换。 |
 
 各项通过数量以本次命令输出为准；界面用例会随交互变化增加，不固定为某个旧版本的数量。
 
@@ -41,7 +55,11 @@ Oodle 烟测把自行生成的 JSON 包装为合成 stored frame，再经实际 
 
 公开界面测试使用 Happy DOM，验证事件和 DOM 状态，不代表真实浏览器排版、浏览器 WebAssembly SIMD 或生产 HTTPS 环境已经通过检查。
 
+UI 仿真中的资源请求为不带存档内容的 GET；独立访问计数的 POST 在 `analytics.test.mjs` 中以模拟浏览器验证。不能据此宣称网站没有网络统计，实际客户端行为见[隐私说明](PRIVACY.md)。
+
 地图测试验证已生成 UV 的绘制和回退行为，不验证原生网格重建与运行中的游戏完全相同。离线预处理使用 Qhull；共圆点连边、浮点边界与三角网裁切细节仍需运行时比对，游戏自己的图标避让也会改变截图位置。详见[地图投影说明](MAP-PROJECTION.md)。
+
+地形数据测试检查真实导航三角形的静态完整性和已知高度地标，不能证明当前游戏状态下每个表面都可达，也不验证自动路线。共享世界、坐标转换和覆盖限制见[地形说明](TERRAIN.md)。3D 的真实 WebGL2 画面、触控及显存表现仍需单独手验。
 
 ## 可选的私有回归样本
 
@@ -73,14 +91,14 @@ node tests/ui.test.mjs
 Remove-Item Env:PBZ_TEST_SAVE
 ```
 
-UI 回归分支读取该 `.sav`，启用文件选择、槽位切换、状态重算、CSV 导出、清除和错误处理等额外检查；期望值由 `analyzeSlot` 从载入的槽位动态计算。它不需要 codec 回归目录中的同名 JSON，也不把环境变量作为 codec 的目录参数。
+设置后，UI 用该 `.sav` 替代默认合成双槽文件，执行相同的选择文件、切槽、状态重算、任务、CSV、清空和错误处理回归；期望值由 `analyzeSlot` 动态计算。它不需要 codec 回归目录中的同名 JSON，也不把环境变量作为 codec 的目录参数。可追加 `en` 参数或设置 `PBZ_TEST_LANGUAGE=en` 测试英文界面。
 
 回归样本请放在仓库外。不要将其放入 `public/`、提交 Git，或作为发布包附件。正常应用的存档选择与解码均在用户浏览器本地完成。
 
 ## 结果文件
 
-- `scripts/test_codec.mjs` 会生成或覆盖 `scripts/test_codec_results.json`。无样本运行的预期为 24 项、`private_fixture_used: false`；提供有效私有回归目录时额外运行一项对照。
-- `tests/ui.test.mjs` 会生成 `artifacts/ui-test-results.json`，其验证方式应标为 Happy DOM。
+- `scripts/test_codec.mjs` 会生成或覆盖 `scripts/test_codec_results.json`，无私有样本时 `private_fixture_used: false`；有效私有目录另增加原生对照，用例数量以实际输出为准。
+- `tests/ui.test.mjs` 会生成 `artifacts/ui-test-results.zh.json` 或 `.en.json`，记录语言、合成／私有 fixture 类型、检查结果与模拟资源请求；其验证方式标为 Happy DOM。
 - 这些文件是运行结果，不是测试输入，不需要提交到 Git。
 
 ## 打包静态站点
@@ -103,15 +121,18 @@ python scripts/package.py
 python -m http.server 8767 --bind 127.0.0.1 --directory public
 ```
 
-然后打开 `http://127.0.0.1:8767/`：
+然后打开 `http://127.0.0.1:8767/`，进入检查器；同时核对 `/en/` 和 `/phantom-blade-zero/en/` 的静态英文入口：
 
 1. 不选存档，核对类别与地图筛选、点位列表及载入前的计数。
 2. 选择自己的 `.sav`，核对进度、槽位、最新时间和状态重算；在网络面板检查没有携带存档内容的上传请求。
-3. 切换类别与“仅未收”，确认同一分区的投影框保持不变；切换“游戏地图 / 世界坐标”，核对模式提示、未校准点回退、点位详情和原生坐标。
-4. 导出 CSV、切换槽位、清除数据，再选择无效文件，检查状态和错误提示。
-5. 点选坐标和铃铛近邻，检查窄屏布局与键盘操作；比对游戏截图时记录地图、点位编号和高度，并考虑游戏图标避让造成的偏移。
+3. 默认 2D 地形应在选择地图后加载。切换高度区域及物品高度聚焦，核对表面与标记的过滤、列表保留、空标记区域仍显示地形；切换 3D 检查旋转、平移、缩放与不同楼层。
+4. 显式切换“游戏地图 / 世界坐标”，核对模式提示、未校准点回退、筛选后的稳定布局、详情与原生坐标；关闭 WebGL 支持时检查自动回到 2D。
+5. 导出 CSV、切换槽位、清除数据，再选择无效文件，检查状态和错误提示。
+6. 点选坐标和铃铛近邻，检查窄屏布局与键盘操作；比对游戏截图时记录地图、点位编号和高度，并考虑游戏图标避让造成的偏移。
 
 WebCrypto 需要 HTTPS 或受信任的本机 localhost 环境。Oodle 解码还需要浏览器支持 WebAssembly SIMD；部署的 CSP 需要允许本站脚本及 `wasm-unsafe-eval`。原始游戏坐标的直线近邻仅用于定位，不代表道路可达性。
+
+本地访问不会触发线上计数。生产检查时如需排除自己的交互访问，可使用[隐私说明](PRIVACY.md)中的浏览器停用偏好。
 
 ## ooz-wasm 的源码与构建
 
