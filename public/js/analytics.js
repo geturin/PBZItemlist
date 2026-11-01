@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Count an interactive page visit, never a save, search, filter or application event.
+import { GUIDE_PAGES } from './guide-routes.js';
 const PAGES = Object.freeze({
+  ...GUIDE_PAGES,
   '/': 'Game Collection Checkers',
   '/en/': 'Game Collection Checkers · English',
   '/phantom-blade-zero/': 'Phantom Blade Zero Checker · 中文',

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
-import { validateTerrainGeometry, validateTerrain2D } from '../public/js/terrain-data.js';
+import { validateTerrain2D } from '../public/js/terrain-data.js';
 
 const root = new URL('../public/data/terrain-low/', import.meta.url);
 const manifest = JSON.parse(await fs.readFile(new URL('manifest.json', root), 'utf8'));
@@ -11,7 +11,8 @@ const catalog = JSON.parse(await fs.readFile(new URL('../public/data/catalog.jso
 assert.equal(manifest.format, 2);
 assert.equal(Object.keys(manifest.worlds).length, 9);
 assert.equal(Object.keys(manifest.maps).length, 12);
-const totals = { vertices: 0, triangles: 0, twoDJsonBytes: 0, twoDGzipBytes: 0, threeDJsonBytes: 0, threeDGzipBytes: 0 };
+const totals = { twoDJsonBytes: 0, twoDGzipBytes: 0 };
+const published = new Set(['manifest.json']);
 let witnesses = 0;
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const validBounds = bounds => Array.isArray(bounds?.min) && Array.isArray(bounds?.max)
@@ -19,6 +20,7 @@ const validBounds = bounds => Array.isArray(bounds?.min) && Array.isArray(bounds
   && bounds.min.every((number, axis) => Number.isFinite(number) && Number.isFinite(bounds.max[axis]) && number <= bounds.max[axis]);
 async function readAsset(metadata, kind) {
   assert(new RegExp(`^[A-Za-z0-9_]+\\.${kind}\\.[a-f0-9]{16}\\.json\\.gz$`).test(metadata.file));
+  published.add(metadata.file);
   const compressed = await fs.readFile(new URL(metadata.file, root));
   assert.equal(compressed.length, metadata.gzipBytes);
   assert(compressed.length < 2 * 1024 * 1024, 'Each optional map asset must stay below 2 MiB compressed');
@@ -31,57 +33,47 @@ async function readAsset(metadata, kind) {
   return JSON.parse(raw);
 }
 
-// Match a nearby XY surface and its height, never a remote tower floor.
-function nearestXY(point, a, b, c) {
-  const [x, y] = point;
-  const determinant = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
-  if (Math.abs(determinant) > 1e-9) {
-    const u = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / determinant;
-    const v = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / determinant;
-    if (u >= -1e-8 && v >= -1e-8 && u + v <= 1 + 1e-8) return [0, u * a[2] + v * b[2] + (1 - u - v) * c[2]];
+function insideRing([x, y], ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i], b = ring[j];
+    if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
   }
-  let best = [Infinity, 0];
-  for (const [p, q] of [[a, b], [b, c], [c, a]]) {
-    const dx = q[0] - p[0], dy = q[1] - p[1], length2 = dx * dx + dy * dy;
-    const t = length2 ? Math.max(0, Math.min(1, ((x - p[0]) * dx + (y - p[1]) * dy) / length2)) : 0;
-    const distance2 = (x - p[0] - t * dx) ** 2 + (y - p[1] - t * dy) ** 2;
-    if (distance2 < best[0]) best = [distance2, p[2] + t * (q[2] - p[2])];
+  return inside;
+}
+function polygonDistance2(point, polygon) {
+  if (insideRing(point, polygon[0]) && !polygon.slice(1).some(ring => insideRing(point, ring))) return 0;
+  let best = Infinity;
+  for (const ring of polygon) for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1], length2 = dx * dx + dy * dy;
+    const t = length2 ? Math.max(0, Math.min(1, ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / length2)) : 0;
+    best = Math.min(best, (point[0] - a[0] - t * dx) ** 2 + (point[1] - a[1] - t * dy) ** 2);
   }
   return best;
 }
 
 for (const [id, world] of Object.entries(manifest.worlds)) {
-  assert(world.twoD && world.threeD, 'Views must have separate, independently loadable assets');
-  assert.notEqual(world.twoD.file, world.threeD.file);
+  assert(world.twoD && !world.threeD, 'The release publishes only 2D outline geometry');
   const outlines = validateTerrain2D(await readAsset(world.twoD, 'outlines'));
-  const geometry = validateTerrainGeometry(await readAsset(world.threeD, 'floors'));
-  assert.equal(outlines.world, id); assert.equal(geometry.world, id);
-  assert(validBounds(geometry.bounds)); assert(validBounds(outlines.bounds));
-  assert.equal(geometry.vertices.length, world.threeD.vertices);
-  assert.equal(geometry.indices.length / 3, world.threeD.triangles);
+  assert.equal(outlines.world, id); assert(validBounds(outlines.bounds));
   assert.equal(outlines.layers.length, world.twoD.layers);
   let contourPoints = 0;
-  for (const layer of outlines.layers) for (const polygon of layer.polygons) for (const ring of polygon) contourPoints += ring.length;
+  for (const layer of outlines.layers) {
+    assert.equal(layer.polygonZ.length, layer.polygons.length);
+    assert(layer.polygonZ.every(z => Number.isFinite(z) && z >= layer.minZ - 1 && z <= layer.maxZ + 1));
+    for (const polygon of layer.polygons) for (const ring of polygon) {
+      assert.deepEqual(ring[0], ring.at(-1), 'Published vector rings close exactly');
+      contourPoints += ring.length;
+    }
+  }
   assert.equal(contourPoints, world.twoD.contourPoints);
   assert.equal(world.displayApproximation?.precision, 'display-approximation-not-walkability');
   assert.equal(world.displayApproximation?.routing, false);
-  let end = 0;
-  for (const band of geometry.zBands) {
-    assert(validBounds(band.bounds));
-    assert.equal(band.firstIndex, end); assert.equal(band.indexCount % 3, 0);
-    assert.equal(band.triangleCount, band.indexCount / 3);
-    end += band.indexCount;
-  }
-  assert.equal(end, geometry.indices.length, 'Height bands partition the simplified display triangles');
-  for (const vertex of geometry.vertices) for (let axis = 0; axis < 3; axis++) {
-    assert(vertex[axis] >= geometry.bounds.min[axis] - .01 && vertex[axis] <= geometry.bounds.max[axis] + .01, 'Display bounds must enclose exported vertices');
-  }
-  assert(geometry.zBands.some(band => band.id === geometry.defaultBandId));
+  for (const band of outlines.zBands) assert(validBounds(band.bounds));
+  assert(outlines.zBands.some(band => band.id === outlines.defaultBandId));
   for (const mapId of world.mapIds) assert.equal(manifest.maps[mapId]?.world, id);
-  totals.vertices += geometry.vertices.length; totals.triangles += geometry.indices.length / 3;
   for (const field of ['jsonBytes', 'gzipBytes']) {
     totals[`twoD${field[0].toUpperCase()}${field.slice(1)}`] += world.twoD[field];
-    totals[`threeD${field[0].toUpperCase()}${field.slice(1)}`] += world.threeD[field];
   }
   if (id === 'PBZ_Fujizhilin_WP') {
     for (const bellId of ['Bell_LZSJ_017', 'Bell_LZSJ_018', 'Bell_LZSJ_019']) {
@@ -89,12 +81,9 @@ for (const [id, world] of Object.entries(manifest.worlds)) {
       assert(bell?.location, bellId);
       const { X, Y, Z } = bell.location;
       let bestHeightError = Infinity;
-      for (let index = 0; index < geometry.indices.length; index += 3) {
-        const a = geometry.vertices[geometry.indices[index]], b = geometry.vertices[geometry.indices[index + 1]], c = geometry.vertices[geometry.indices[index + 2]];
-        if (Math.max(a[0], b[0], c[0]) < X - 500 || Math.min(a[0], b[0], c[0]) > X + 500
-            || Math.max(a[1], b[1], c[1]) < Y - 500 || Math.min(a[1], b[1], c[1]) > Y + 500) continue;
-        const [distance2, surfaceZ] = nearestXY([X, Y], a, b, c);
-        if (distance2 <= 500 ** 2) bestHeightError = Math.min(bestHeightError, Math.abs(surfaceZ - Z));
+      for (const layer of outlines.layers) for (let index = 0; index < layer.polygons.length; index++) {
+        const heightError = Math.abs(layer.polygonZ[index] - Z);
+        if (heightError < bestHeightError && polygonDistance2([X, Y], layer.polygons[index]) <= 500 ** 2) bestHeightError = heightError;
       }
       assert(bestHeightError <= 150, `${bellId}: a display patch within 5 m XY must retain its own floor within 1.5 m Z (got ${bestHeightError} cm)`);
       witnesses++;
@@ -102,9 +91,8 @@ for (const [id, world] of Object.entries(manifest.worlds)) {
   }
 }
 for (const [key, value] of Object.entries(totals)) assert.equal(value, manifest.totals[key], key);
-assert(totals.triangles < 500_000, 'Display floors must reduce the former 1,783,699 triangles by at least 72%');
-assert(totals.threeDGzipBytes < 6_000_000, '3D display data must be substantially smaller than the former 20.7 MB download');
 assert(totals.twoDGzipBytes < 3_000_000, 'Optional 2D floor outlines have their own small download budget');
+assert.deepEqual((await fs.readdir(root)).sort(), [...published].sort(), 'No obsolete 3D or candidate geometry remains in the published directory');
 assert.equal(witnesses, 3);
 assert(!manifest.maps.XueSeSenLin && !manifest.maps.HuanShuShi, 'Do not invent terrain aliases for unverified definitions');
 
@@ -142,4 +130,4 @@ assert.equal(uniqueArt.size, 16, 'Shared native textures must be reused rather t
 for (const ids of [['PangZhen', 'HouJie', 'XiMeng'], ['MeiGuHu', 'MeiGu_YiJi'], ['DuanHunYa', 'DuanHunShan']]) {
   assert.equal(new Set(ids.map(id => art.find(map => map.id === id).image.file)).size, 1);
 }
-console.log(`PASS terrain assets: 9 worlds / 12 maps / ${totals.triangles} display triangles / 3 floor witnesses / 16 hashed map images`);
+console.log('PASS 2D floor assets: 9 worlds / 12 maps / 3 height witnesses / 16 hashed previews and details / no 3D assets');

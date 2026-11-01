@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// 2D outlines and 3D floors are separate, bounded, on-demand assets.
+// One bounded world of 2D outlines is loaded on demand.
 import { decodeTerrainAsset } from './terrain-format.js';
-export { validateTerrainGeometry, validateTerrain2D } from './terrain-format.js';
+export { validateTerrain2D } from './terrain-format.js';
 const manifestURL = new URL('../data/terrain-low/manifest.json', import.meta.url);
 let manifestPromise;
-const cache = { '2d': null, '3d': null };
-const generation = { '2d': 0, '3d': 0 };
+const cache = { '2d': null };
+const generation = { '2d': 0 };
 const aborted = () => Object.assign(new Error('Terrain request cancelled'), { name: 'AbortError' });
 
 export async function getTerrainManifest() {
@@ -19,7 +19,7 @@ export async function getTerrainManifest() {
 }
 
 export function releaseTerrain(view) {
-  for (const mode of view ? [view] : ['2d', '3d']) {
+  for (const mode of view ? [view] : ['2d']) {
     if (!(mode in cache)) continue;
     generation[mode]++;
     cache[mode]?.controller.abort();
@@ -27,25 +27,7 @@ export function releaseTerrain(view) {
   }
 }
 
-function workerGeometry(url, asset, signal) {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./terrain-worker.js?v=2.1.0', import.meta.url), { type: 'module' });
-    const stop = () => { worker.terminate(); signal.removeEventListener('abort', cancel); };
-    const cancel = () => { stop(); reject(aborted()); };
-    signal.addEventListener('abort', cancel, { once: true });
-    worker.onmessage = event => {
-      stop();
-      if (!event.data?.ok) reject(Error('Terrain decoding failed'));
-      else resolve(event.data.geometry);
-    };
-    worker.onerror = () => { stop(); reject(Error('Terrain worker unavailable')); };
-    if (signal.aborted) cancel();
-    else worker.postMessage({ url: url.href, asset });
-  });
-}
-
 async function loadAsset(url, asset, view, signal) {
-  if (view === '3d' && typeof Worker !== 'undefined') return workerGeometry(url, asset, signal);
   const response = await fetch(url, { cache: 'force-cache', signal });
   if (!response.ok) throw Error('Terrain unavailable');
   const geometry = await decodeTerrainAsset(await response.arrayBuffer(), asset, view);
@@ -54,12 +36,12 @@ async function loadAsset(url, asset, view, signal) {
 }
 
 export async function loadTerrainForMap(mapId, { view = '2d' } = {}) {
-  if (!['2d', '3d'].includes(view)) throw Error('Invalid terrain view');
+  if (view !== '2d') throw Error('Invalid terrain view');
   const requestGeneration = generation[view];
   const manifest = await getTerrainManifest();
   if (requestGeneration !== generation[view]) throw aborted();
   const map = manifest.maps[mapId], world = map && manifest.worlds[map.world];
-  const asset = world?.[view === '2d' ? 'twoD' : 'threeD'];
+  const asset = world?.twoD;
   if (!asset) return null;
   const key = `${map.world}:${asset.file}`;
   if (cache[view]?.key !== key) {

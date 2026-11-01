@@ -1,0 +1,402 @@
+{
+  "pages": [
+    {
+      "path": "/phantom-blade-zero/collectibles/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/",
+      "language": "zh-CN",
+      "kind": "hub",
+      "title": "影之刃零收集攻略 · 地图与物品位置"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/XiGu/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/XiGu/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "XiGu",
+      "title": "悲泣溪谷收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/FuJiZhiLin/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/FuJiZhiLin/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "FuJiZhiLin",
+      "title": "血色森林收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/DengDingShanDao/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/DengDingShanDao/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "DengDingShanDao",
+      "title": "枷笼山收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/PangZhen/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/PangZhen/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "PangZhen",
+      "title": "庞镇收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/MeiGuHu/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/MeiGuHu/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "MeiGuHu",
+      "title": "梅谷湖收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/DuanHunYa/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/DuanHunYa/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "DuanHunYa",
+      "title": "断魂崖收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/XiMeng/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/XiMeng/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "XiMeng",
+      "title": "戏梦山庄收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/HouJie/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/HouJie/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "HouJie",
+      "title": "后街收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/LuJiaCun/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/LuJiaCun/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "LuJiaCun",
+      "title": "陆家村收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/ZhengDaoDaYing/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "ZhengDaoDaYing",
+      "title": "正道大营收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/maps/MeiGu_YiJi/",
+      "language": "zh-CN",
+      "kind": "map",
+      "mapId": "MeiGu_YiJi",
+      "title": "梅谷遗迹收集物位置 · 影之刃零攻略"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/bell/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/bell/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "bell",
+      "title": "影之刃零铃铛位置 · 161个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/blackStone/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/blackStone/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "blackStone",
+      "title": "影之刃零黑石碎片位置 · 40个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/amber/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/amber/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "amber",
+      "title": "影之刃零杀气琥珀碎片位置 · 40个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/memoryFlower/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/memoryFlower/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "memoryFlower",
+      "title": "影之刃零记忆之花位置 · 130个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/key/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/key/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "key",
+      "title": "影之刃零钥匙位置 · 45个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/primary/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/primary/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "primary",
+      "title": "影之刃零主要物品位置 · 106个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/weapon/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/weapon/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "weapon",
+      "title": "影之刃零武器位置 · 23个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/shaqiWeapon/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/shaqiWeapon/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "shaqiWeapon",
+      "title": "影之刃零杀器位置 · 24个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/accessory/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/accessory/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "accessory",
+      "title": "影之刃零饰品位置 · 62个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/medicine/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/medicine/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "medicine",
+      "title": "影之刃零药品位置 · 16个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/rongShu/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/rongShu/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "rongShu",
+      "title": "影之刃零榕树之心位置 · 5个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/longZhu/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/longZhu/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "longZhu",
+      "title": "影之刃零龙珠挑战位置 · 5个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/collectibles/categories/scarecrow/",
+      "alternatePath": "/phantom-blade-zero/en/collectibles/categories/scarecrow/",
+      "language": "zh-CN",
+      "kind": "category",
+      "category": "scarecrow",
+      "title": "影之刃零稻草人挑战位置 · 3个点位"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/",
+      "alternatePath": "/phantom-blade-zero/collectibles/",
+      "language": "en",
+      "kind": "hub",
+      "title": "Phantom Blade Zero Collection Guide · Maps and Items"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/XiGu/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/XiGu/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "XiGu",
+      "title": "Weeping Creek Valley Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/FuJiZhiLin/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/FuJiZhiLin/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "FuJiZhiLin",
+      "title": "Crimson Forest Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/DengDingShanDao/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/DengDingShanDao/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "DengDingShanDao",
+      "title": "Mountain Of Imprisonment Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/PangZhen/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/PangZhen/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "PangZhen",
+      "title": "Pangzhen Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/MeiGuHu/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/MeiGuHu/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "MeiGuHu",
+      "title": "Meigu Lake Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/DuanHunYa/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/DuanHunYa/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "DuanHunYa",
+      "title": "Mount Soulrend ? Cliff Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/XiMeng/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/XiMeng/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "XiMeng",
+      "title": "Mirage Estate Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/HouJie/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/HouJie/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "HouJie",
+      "title": "Pangzhen ? Backstreets Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/LuJiaCun/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/LuJiaCun/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "LuJiaCun",
+      "title": "Village Of Lu Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/ZhengDaoDaYing/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "ZhengDaoDaYing",
+      "title": "Mandate Encampment Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/maps/MeiGu_YiJi/",
+      "alternatePath": "/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/",
+      "language": "en",
+      "kind": "map",
+      "mapId": "MeiGu_YiJi",
+      "title": "Meigu Ruins Collectible Locations · Phantom Blade Zero"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/bell/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/bell/",
+      "language": "en",
+      "kind": "category",
+      "category": "bell",
+      "title": "Phantom Blade Zero Bells · 161 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/blackStone/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/blackStone/",
+      "language": "en",
+      "kind": "category",
+      "category": "blackStone",
+      "title": "Phantom Blade Zero Blackstone Shards · 40 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/amber/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/amber/",
+      "language": "en",
+      "kind": "category",
+      "category": "amber",
+      "title": "Phantom Blade Zero Sha-Chi Amber Shards · 40 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/memoryFlower/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/memoryFlower/",
+      "language": "en",
+      "kind": "category",
+      "category": "memoryFlower",
+      "title": "Phantom Blade Zero Memory Flowers · 130 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/key/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/key/",
+      "language": "en",
+      "kind": "category",
+      "category": "key",
+      "title": "Phantom Blade Zero Keys · 45 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/primary/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/primary/",
+      "language": "en",
+      "kind": "category",
+      "category": "primary",
+      "title": "Phantom Blade Zero Key Items · 106 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/weapon/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/weapon/",
+      "language": "en",
+      "kind": "category",
+      "category": "weapon",
+      "title": "Phantom Blade Zero Weapons · 23 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/shaqiWeapon/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/shaqiWeapon/",
+      "language": "en",
+      "kind": "category",
+      "category": "shaqiWeapon",
+      "title": "Phantom Blade Zero Phantom Edges · 24 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/accessory/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/accessory/",
+      "language": "en",
+      "kind": "category",
+      "category": "accessory",
+      "title": "Phantom Blade Zero Accessories · 62 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/medicine/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/medicine/",
+      "language": "en",
+      "kind": "category",
+      "category": "medicine",
+      "title": "Phantom Blade Zero Medicine · 16 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/rongShu/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/rongShu/",
+      "language": "en",
+      "kind": "category",
+      "category": "rongShu",
+      "title": "Phantom Blade Zero Banyan Hearts · 5 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/longZhu/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/longZhu/",
+      "language": "en",
+      "kind": "category",
+      "category": "longZhu",
+      "title": "Phantom Blade Zero Dragon Pillar Challenges · 5 Locations"
+    },
+    {
+      "path": "/phantom-blade-zero/en/collectibles/categories/scarecrow/",
+      "alternatePath": "/phantom-blade-zero/collectibles/categories/scarecrow/",
+      "language": "en",
+      "kind": "category",
+      "category": "scarecrow",
+      "title": "Phantom Blade Zero Scarecrow Challenges · 3 Locations"
+    }
+  ]
+}

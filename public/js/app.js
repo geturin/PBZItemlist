@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Save data stays in page memory. Visitor analytics is a separate module.
-import { decodeSave } from './save-codec.js?v=2.1.0';
-import { analyzeSlot } from './completion.js?v=2.1.0';
-import { createMapView } from './map-view.js?v=2.1.0';
-import { normalizeLanguage, localizeCatalog, t } from './i18n.js?v=2.1.0';
-import { loadTerrainForMap, releaseTerrain, terrainBand, terrainFocusBounds } from './terrain-data.js?v=2.1.0';
-import { drawTerrain2D } from './terrain-2d.js?v=2.1.0';
+import { decodeSave } from './save-codec.js?v=2.2.0';
+import { analyzeSlot } from './completion.js?v=2.2.0';
+import { createMapView } from './map-view.js?v=2.2.0';
+import { normalizeLanguage, localizeCatalog, t } from './i18n.js?v=2.2.0';
+import { loadTerrainForMap, releaseTerrain, terrainBand, terrainFocusBounds } from './terrain-data.js?v=2.2.0';
+import { createTerrain2DLayer } from './terrain-2d.js?v=2.2.0';
+import { bindMapInteractions, toMapPoint, zoomAt } from './map-interaction.js?v=2.2.0';
+import { createMapTileLayer } from './map-tiles.js?v=2.2.0';
+import { resolveCatalogLink } from './catalog-link.js?v=2.2.0';
 
 const LANGUAGE = normalizeLanguage(document.documentElement.lang);
 const LOCALE = LANGUAGE === 'en' ? 'en-US' : 'zh-CN';
@@ -23,8 +26,9 @@ const CATEGORY_NAMES = { bell: '铃铛', amber: '杀气琥珀', hupo: '杀气琥
 const state = { catalog: null, catalogPromise: null, baseRecords: [], records: [], maps: [], categories: [], decoded: null, slot: null, analysis: null, file: null, map: 'all', category: 'all', query: '', pendingOnly: false, sort: 'status', selected: null, pageSize: PAGE_SIZE, busy: false, loadToken: 0, zoom: 1, panX: 0, panY: 0, mapItems: [], mapMode: 'game', warnings: [], drag: null, lastMapScope: null, questQuery: '', questStatus: 'all', questExpanded: new Set() };
 state.mapMode = 'game';
 Object.assign(state, { terrainMapId: null, terrainStatus: '', terrainData: null, terrainBandId: null,
-  terrainLoadId: 0, terrainSelectedKey: null, terrainHeightFocus: false, terrain3d: null, terrain3dPromise: null, terrain3dSignature: '', terrainAssetView: null });
+  terrainLoadId: 0 });
 let terrainBackdrop = null, nativeBackdrop = null;
+let tileFrame = 0;
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -139,6 +143,9 @@ async function loadCatalog() {
     const catalog = localizeCatalog(base, overlay, LANGUAGE);
     if (!catalog || !Array.isArray(catalog.records)) throw new Error('CATALOG');
     normalizeCatalog(catalog);
+    const linked = resolveCatalogLink(window.location.search, state);
+    state.map = linked.map; state.category = linked.category; state.selected = linked.selectedKey;
+    fillFilters();
     render();
     return catalog;
   })();
@@ -219,11 +226,18 @@ function renderList(records) {
 function resetView() { state.zoom = 1; state.panX = 0; state.panY = 0; applyMapView(); }
 function applyMapView() {
   $('map-world').setAttribute('transform', `translate(${state.panX} ${state.panY}) translate(380 295) scale(${state.zoom}) translate(-380 -295)`);
-  if (nativeBackdrop) {
-    const file = state.zoom >= 2 && nativeBackdrop.image.detailFile ? nativeBackdrop.image.detailFile : nativeBackdrop.image.file;
-    const href = new URL('../data/' + file, import.meta.url).href;
-    if (nativeBackdrop.node.getAttribute('href') !== href) nativeBackdrop.node.setAttribute('href', href);
-  }
+  $('map-world').dataset.zoom = String(state.zoom);
+  for (const icon of $('map-world').querySelectorAll('.map-marker-icon')) icon.setAttribute('transform', `scale(${1 / state.zoom})`);
+  for (const label of $('map-world').querySelectorAll('.map-axis-label')) label.style.display = state.zoom > 1.25 ? 'none' : '';
+  if (nativeBackdrop && !tileFrame) tileFrame = requestAnimationFrame(() => {
+    tileFrame = 0;
+    if (!nativeBackdrop) return;
+    const rect = $('coordinate-map').getBoundingClientRect();
+    const a = toMapPoint(rect, rect.left, rect.top), b = toMapPoint(rect, rect.right ?? rect.left + rect.width, rect.bottom ?? rect.top + rect.height);
+    nativeBackdrop.tiles.update({ zoom: state.zoom, panX: state.panX, panY: state.panY }, {
+      pixelRatio: window.devicePixelRatio || 1, scale: Math.min((rect.width || 760) / 760, (rect.height || 590) / 590),
+      bounds: { minX: a.x, minY: a.y, maxX: b.x, maxY: b.y } });
+  });
 }
 function mapScopeId() {
   if (state.map !== 'all') return state.map;
@@ -234,18 +248,11 @@ function publicBellRows(mapId) {
   return source.filter((bell) => itemMap(bell) === mapId && position(bell)).map((bell) => ({ ...bell, id: itemId(bell), name: named(bell, itemId(bell)), mapId }));
 }
 function ensureTerrain(mapId) {
-  const view = state.mapMode === '3d' ? '3d' : '2d';
-  if (state.terrainMapId === mapId && state.terrainAssetView === view && state.terrainStatus) return;
-  releaseTerrain(view === '3d' ? '2d' : '3d');
+  if (state.terrainMapId === mapId && state.terrainStatus) return;
   terrainBackdrop = null;
-  state.terrain3d?.setActive?.(false);
-  state.terrain3d?.clearData?.();
-  state.terrain3dSelected = undefined;
   const token = ++state.terrainLoadId;
-  const keepBand = state.terrainMapId === mapId;
-  Object.assign(state, { terrainMapId: mapId, terrainAssetView: view, terrainStatus: 'loading', terrainData: null,
-    terrainBandId: keepBand ? state.terrainBandId : null, terrainSelectedKey: null, terrain3dSignature: '' });
-  loadTerrainForMap(mapId, { view }).then(result => {
+  Object.assign(state, { terrainMapId: mapId, terrainStatus: 'loading', terrainData: null, terrainBandId: null });
+  loadTerrainForMap(mapId).then(result => {
     if (token !== state.terrainLoadId) return;
     state.terrainData = result?.geometry ?? null;
     state.terrainStatus = result ? 'ready' : 'missing';
@@ -253,22 +260,13 @@ function ensureTerrain(mapId) {
   }).catch(() => {
     if (token !== state.terrainLoadId) return;
     state.terrainStatus = 'error';
-    if (view === '3d' && state.mapMode === '3d' && mapScopeId() === mapId) {
-      state.mapMode = 'game'; $('map-view-select').value = 'game';
-      setNotice(L('3D 资源暂时无法载入，已切换为 2D 地图。', '3D resources could not be loaded. Showing the 2D map.'));
-    }
     if (mapScopeId() === mapId) renderMap(filteredRecords());
   });
 }
 function terrainContext(mapId, allPoints) {
   const geometry = state.terrainMapId === mapId ? state.terrainData : null;
   if (!geometry) return null;
-  const selectedPoint = state.records.find(record => record._key === state.selected);
   let band = terrainBand(geometry, mapId, undefined, state.terrainBandId);
-  if (state.terrainSelectedKey !== state.selected || state.terrainHeightFocus) {
-    state.terrainSelectedKey = state.selected;
-    band = terrainBand(geometry, mapId, position(selectedPoint || {})?.Z, state.terrainBandId);
-  }
   state.terrainBandId = band?.id ?? null;
   const sourceFocus = terrainFocusBounds(geometry, mapId, band);
   const focusBounds = sourceFocus ? { min: [...sourceFocus.min], max: [...sourceFocus.max] } : null;
@@ -279,63 +277,18 @@ function terrainContext(mapId, allPoints) {
     focusBounds.min[0] = Math.min(focusBounds.min[0], p.X); focusBounds.min[1] = Math.min(focusBounds.min[1], p.Y);
     focusBounds.max[0] = Math.max(focusBounds.max[0], p.X); focusBounds.max[1] = Math.max(focusBounds.max[1], p.Y);
   }
-  const selectedZ = position(selectedPoint || {})?.Z;
-  const heightPadding = state.mapMode === '3d' ? 250 : 800;
-  const heightRange = state.terrainHeightFocus && Number.isFinite(selectedZ)
-    ? [selectedZ - heightPadding, selectedZ + heightPadding] : bandRange;
+  const heightRange = bandRange;
   const select = $('map-height-band');
   select.replaceChildren(...(geometry.zBands || []).map((entry, index) => new Option(
     L(`区域 ${index + 1} · ${Math.round(entry.bounds.min[2] / 100)}～${Math.round(entry.bounds.max[2] / 100)} 米`,
       `Area ${index + 1} · ${Math.round(entry.bounds.min[2] / 100)}–${Math.round(entry.bounds.max[2] / 100)} m`), entry.id)));
   select.value = band?.id ?? '';
   select.disabled = geometry.zBands?.length < 2;
-  $('map-height-focus').disabled = !Number.isFinite(selectedZ);
-  $('map-height-focus').checked = state.terrainHeightFocus;
   return { geometry, band, focusBounds, heightRange };
 }
 function inTerrainRange(point, context) {
   const z = position(point)?.Z;
   return !context || Number.isFinite(z) && z >= context.heightRange[0] && z <= context.heightRange[1];
-}
-function showTerrain3D(context, points, mapId) {
-  if (state.terrain3d && !state.terrain3d.available) {
-    state.mapMode = 'game'; $('map-view-select').value = 'game';
-    setNotice(L('此设备无法显示 3D，已切换为 2D 地图。', '3D is unavailable on this device. Showing the 2D map.'));
-    renderMap(filteredRecords()); return;
-  }
-  if (!state.terrain3dPromise) state.terrain3dPromise = import('./terrain-view.js?v=2.1.0').then(async ({ createTerrainView }) => {
-    state.terrain3d = await createTerrainView($('map-3d'), { language: LANGUAGE,
-      onSelect: key => { if (state.records.some(record => record._key === key)) selectRecord(key); },
-      onError: () => { if (state.mapMode === '3d') { state.mapMode = 'game'; $('map-view-select').value = 'game'; renderMap(filteredRecords()); } },
-    });
-    if (!state.terrain3d.available && state.mapMode === '3d') {
-      state.mapMode = 'game'; $('map-view-select').value = 'game';
-      setNotice(L('此设备无法显示 3D，已切换为 2D 地图。', '3D is unavailable on this device. Showing the 2D map.'));
-    }
-    renderMap(filteredRecords());
-  }).catch(() => {
-    state.terrain3d = { available: false };
-    if (state.mapMode === '3d') {
-      state.mapMode = 'game'; $('map-view-select').value = 'game';
-      setNotice(L('3D 资源暂时无法载入，已切换为 2D 地图。', '3D resources could not be loaded. Showing the 2D map.'));
-      renderMap(filteredRecords());
-    }
-  });
-  if (!state.terrain3d?.available || !context) return;
-  state.terrain3d.setActive?.(true);
-  const firstView = !state.terrain3dSignature;
-  const signature = JSON.stringify([mapId, context.band?.id, context.heightRange, points.map(point => [point._key ?? point.id, point.status])]);
-  if (signature !== state.terrain3dSignature) {
-    state.terrain3dSignature = signature;
-    state.terrain3d.setData(context.geometry, points, { mapId, focusBounds: context.focusBounds,
-      heightRange: context.heightRange, bandId: context.band?.id });
-  }
-  if (state.terrain3dSelected !== state.selected) {
-    state.terrain3dSelected = state.selected;
-    state.terrain3d.select(state.selected);
-    if (firstView && state.selected) state.terrain3d.focusSelection?.();
-  }
-  state.terrain3d.resize();
 }
 function renderMap(records) {
   const world = $('map-world');
@@ -344,21 +297,15 @@ function renderMap(records) {
   const empty = $('map-empty');
   const legend = $('map-status-legend');
   legend.classList.toggle('hidden', !state.slot);
-  const terrainMode = ['terrain', '3d'].includes(state.mapMode);
+  const terrainMode = state.mapMode === 'terrain';
   $('map-stage').dataset.terrain = terrainMode ? 'loading' : 'none';
-  if (state.mapMode !== '3d' || !mapId) state.terrain3d?.setActive?.(false);
   if ((!terrainMode || !mapId) && state.terrainMapId) {
     releaseTerrain(); ++state.terrainLoadId;
-    Object.assign(state, { terrainMapId: null, terrainAssetView: null, terrainData: null, terrainStatus: '', terrain3dSignature: '', terrain3dSelected: undefined });
-    state.terrain3d?.clearData?.(); terrainBackdrop = null;
+    Object.assign(state, { terrainMapId: null, terrainData: null, terrainStatus: '' }); terrainBackdrop = null;
   }
-  if (state.mapMode !== 'game') nativeBackdrop = null;
-  $('map-3d').classList.add('hidden');
+  if (state.mapMode !== 'game' && nativeBackdrop) { nativeBackdrop.tiles.dispose(); nativeBackdrop = null; }
   $('coordinate-map').classList.remove('hidden');
   $('map-surface-controls').classList.add('hidden');
-  $('zoom-in').classList.toggle('hidden', state.mapMode === '3d');
-  $('zoom-out').classList.toggle('hidden', state.mapMode === '3d');
-  $('zoom-reset').classList.toggle('hidden', state.mapMode === '3d');
   if (!mapId) {
     empty.classList.remove('hidden');
     empty.querySelector('strong').textContent = L('选择一个地图', 'Choose a map');
@@ -368,31 +315,12 @@ function renderMap(records) {
     state.mapItems = [];
     return;
   }
-  if (state.lastMapScope !== mapId) { state.lastMapScope = mapId; nativeBackdrop = null; resetView(); }
-  if (state.mapMode === '3d' && !state.records.some(record => record._key === state.selected && record.mapId === mapId)) {
-    releaseTerrain(); ++state.terrainLoadId;
-    state.terrain3d?.setActive?.(false); state.terrain3d?.clearData?.();
-    Object.assign(state, { terrainMapId: null, terrainAssetView: null, terrainData: null, terrainStatus: '', terrain3dSignature: '', terrain3dSelected: undefined });
-    terrainBackdrop = null;
-    $('map-title').textContent = L('3D 楼层', '3D floors');
-    $('map-scope').textContent = mapName(mapId);
-    $('map-projection-note').textContent = L('选择物品后查看附近楼层', 'Select an item to view its nearby floors');
-    empty.classList.remove('hidden');
-    empty.querySelector('strong').textContent = L('先选择一个物品', 'Select an item first');
-    empty.querySelector('p').textContent = L('从右侧清单选择物品，查看它所在楼层。', 'Choose an item from the checklist to view its floor.');
-    $('map-compass').classList.add('hidden');
-    state.mapItems = []; return;
-  }
+  if (state.lastMapScope !== mapId) { state.lastMapScope = mapId; nativeBackdrop?.tiles.dispose(); nativeBackdrop = null; resetView(); }
   const scopeRecords = records.filter((record) => record.mapId === mapId);
   const boundsRecords = state.records.filter((record) => record.mapId === mapId && position(record));
   const bells = publicBellRows(mapId);
   const allPoints = [...boundsRecords, ...bells];
-  // Check WebGL first. Unsupported devices never download any 3D floor geometry.
-  if (state.mapMode === '3d') {
-    showTerrain3D(null, [], mapId);
-    if (state.mapMode !== '3d') return;
-    if (state.terrain3d?.available) ensureTerrain(mapId);
-  } else if (terrainMode) ensureTerrain(mapId);
+  if (terrainMode) ensureTerrain(mapId);
   const terrain = terrainMode ? terrainContext(mapId, allPoints) : null;
   const metadata = { ...state.maps.find((map) => map.id === mapId) };
   if (terrain?.focusBounds) {
@@ -415,10 +343,10 @@ function renderMap(records) {
   $('coordinate-map').dataset.projection = view.mode;
   $('map-stage').dataset.view = state.mapMode;
   if (terrainMode) {
-    $('map-title').textContent = state.mapMode === '3d' ? L('3D 楼层', '3D floors') : L('分层平面图', 'Floor plan');
+    $('map-title').textContent = L('分层平面图', 'Floor plan');
     $('map-surface-controls').classList.toggle('hidden', !terrain);
     $('map-projection-note').textContent = terrain
-      ? state.mapMode === '3d' ? L('左键平移 · 右键旋转 · 滚轮缩放', 'Left-drag to pan · right-drag to orbit · scroll to zoom') : L('简化楼层轮廓 · 点击标记查看物品', 'Simplified floor outlines · select a marker for details')
+      ? L('矢量楼层轮廓 · 滚轮缩放', 'Vector floor outlines · scroll to zoom')
       : state.terrainStatus === 'loading' ? L('正在加载地形…', 'Loading terrain…')
         : L('此分区暂未提供地形，显示坐标', 'No terrain for this region; showing coordinates');
   }
@@ -430,41 +358,29 @@ function renderMap(records) {
     return;
   }
   empty.classList.add('hidden');
-  if (state.mapMode === '3d' && terrain) {
-    $('coordinate-map').classList.add('hidden'); $('map-3d').classList.remove('hidden');
-    $('map-compass').classList.add('hidden');
-    const represented = new Set(located.filter(record => record.category === 'bell').map(record => String(record.source?.bellId ?? record.id).toLowerCase()));
-    const points = [...located.map(record => ({ ...record, status: statusOf(record) })),
-      ...bells.filter(bell => !represented.has(bell.id.toLowerCase())).map(bell => ({ ...bell, _key: `bellref:${bell.id}`, category: 'bell' }))];
-    state.mapItems = located;
-    showTerrain3D(terrain, points, mapId);
-    return;
-  }
   const project = view.project;
   if (view.mode === 'game' && metadata.image) {
     const key = JSON.stringify([mapId, view.frame]);
-    if (nativeBackdrop?.key !== key) nativeBackdrop = { key, image: metadata.image,
-      node: svgElement('image', { ...view.frame, class: 'map-native-background', preserveAspectRatio: 'none', 'pointer-events': 'none' }) };
-    world.append(nativeBackdrop.node);
+    if (nativeBackdrop?.key !== key) {
+      nativeBackdrop?.tiles.dispose();
+      nativeBackdrop = { key, image: metadata.image, tiles: createMapTileLayer(document, mapId, view.frame),
+        node: svgElement('image', { ...view.frame, href: new URL('../data/' + metadata.image.file, import.meta.url).href,
+          class: 'map-native-background', preserveAspectRatio: 'none', 'pointer-events': 'none' }) };
+    }
+    world.append(nativeBackdrop.node, nativeBackdrop.tiles.node);
     applyMapView();
   }
   if (terrainMode && terrain) {
     const signature = JSON.stringify([mapId, metadata.worldBounds, terrain.band?.id, terrain.heightRange]);
     if (terrainBackdrop?.geometry !== terrain.geometry || terrainBackdrop.signature !== signature) {
-      const foreign = svgElement('foreignObject', { x: 0, y: 0, width: 760, height: 590, 'aria-hidden': 'true', 'pointer-events': 'none' });
-      const canvas = document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
-      canvas.width = 950; canvas.height = 738; canvas.style.width = '760px'; canvas.style.height = '590px';
-      foreign.append(canvas);
-      const draw = drawTerrain2D(canvas, terrain.geometry, point => {
-        const p = project(point); return p ? { x: p.x * 1.25, y: p.y * 1.25 } : null;
-      }, { heightRange: terrain.heightRange, bandId: terrain.band?.id });
-      terrainBackdrop = { geometry: terrain.geometry, signature, foreign, available: draw.available };
+      const node = createTerrain2DLayer(document, terrain.geometry, project, { heightRange: terrain.heightRange, bandId: terrain.band?.id });
+      terrainBackdrop = { geometry: terrain.geometry, signature, node };
     }
-    world.append(terrainBackdrop.foreign);
-    $('map-stage').dataset.terrain = terrainBackdrop.available ? 'ready' : 'unavailable';
+    world.append(terrainBackdrop.node);
+    $('map-stage').dataset.terrain = 'ready';
   }
   const axis = svgElement('g', { 'aria-hidden': 'true' });
-  if (view.mode === 'game') axis.append(svgElement('rect', { ...view.frame, fill: 'none', stroke: 'currentColor', opacity: .22, 'stroke-dasharray': '4 5' }));
+  if (view.mode === 'game') axis.append(svgElement('rect', { ...view.frame, fill: 'none', stroke: 'currentColor', opacity: .22, 'stroke-dasharray': '4 5', 'vector-effect': 'non-scaling-stroke' }));
   for (const tick of view.ticks) axis.append(svgElement('text', { x: tick.x, y: tick.y, 'text-anchor': tick.axis === 'x' ? 'middle' : 'start', class: 'map-axis-label' }, tick.label));
   world.append(axis);
   const bellGroup = svgElement('g', { class: 'map-bells' });
@@ -474,7 +390,9 @@ function renderMap(records) {
     const p = project(bell);
     const marker = svgElement('g', { class: 'bell-map-marker', transform: `translate(${p.x} ${p.y})` });
     marker.dataset.bellId = bell.id;
-    marker.append(svgElement('circle', { class: 'point-shape', r: 4, fill: '#17211b', stroke: '#99b88b', 'stroke-width': 1.2 }), svgElement('title', {}, `${L('铃铛', 'Bell')}: ${bell.name}`));
+    const icon = svgElement('g', { class: 'map-marker-icon' });
+    icon.append(svgElement('circle', { class: 'point-shape', r: 3, fill: '#17211b', stroke: '#99b88b', 'stroke-width': 1.1 }));
+    marker.append(icon, svgElement('title', {}, `${L('铃铛', 'Bell')}: ${bell.name}`));
     marker.addEventListener('pointerenter', (event) => showTooltip(event, `${L('铃铛', 'Bell')} · ${bell.name}`));
     marker.addEventListener('pointerleave', hideTooltip);
     bellGroup.append(marker);
@@ -489,11 +407,14 @@ function renderMap(records) {
     const selected = state.selected === record._key;
     const marker = svgElement('g', { class: `map-marker${selected ? ' is-selected' : ''}`, transform: `translate(${p.x} ${p.y})`, tabindex: 0, role: 'button', 'aria-label': `${record.name}, ${state.slot ? STATUS[status] : L('查看位置', 'View location')}`, 'aria-pressed': selected });
     marker.dataset.key = record._key;
-    marker.append(svgElement('circle', { class: 'point-halo', r: 12, fill: `${color}18`, stroke: `${color}66`, 'stroke-width': .8 }));
-    if (record.category === 'bell') marker.append(svgElement('circle', { class: 'point-shape', r: 5, fill: '#17211b', stroke: color, 'stroke-width': 1.7 }));
-    else marker.append(svgElement('path', { class: 'point-shape', d: 'M0-5.5 5.5 0 0 5.5-5.5 0Z', fill: status === 'done' ? '#17211b' : color, stroke: color, 'stroke-width': status === 'done' ? 1.5 : .8, opacity: status === 'done' ? .7 : 1 }));
+    const icon = svgElement('g', { class: 'map-marker-icon' });
+    icon.append(svgElement('circle', { r: 11, fill: 'transparent', class: 'point-hit-target' }));
+    icon.append(svgElement('circle', { class: 'point-halo', r: 8, fill: `${color}18`, stroke: `${color}66`, 'stroke-width': .8 }));
+    if (record.category === 'bell') icon.append(svgElement('circle', { class: 'point-shape', r: selected ? 4.5 : 3.5, fill: '#17211b', stroke: color, 'stroke-width': 1.2 }));
+    else icon.append(svgElement('path', { class: 'point-shape', d: 'M0-3.5 3.5 0 0 3.5-3.5 0Z', fill: status === 'done' ? '#17211b' : color, stroke: color, 'stroke-width': 1, opacity: status === 'done' ? .7 : 1 }));
     marker.append(svgElement('title', {}, `${record.name} · ${categoryName(record.category)}`));
-    if (selected) marker.append(svgElement('text', { class: 'point-label', x: 11, y: -10 }, record.name.slice(0, 24)));
+    if (selected) icon.append(svgElement('path', { d: 'M-7 0H-2M2 0H7M0-7V-2M0 2V7', fill: 'none', stroke: '#fff', 'stroke-width': .8 }), svgElement('text', { class: 'point-label', x: 10, y: -9 }, record.name.slice(0, 24)));
+    marker.append(icon);
     marker.addEventListener('click', (event) => { event.stopPropagation(); selectRecord(record._key); });
     marker.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRecord(record._key); } });
     marker.addEventListener('pointerenter', (event) => showTooltip(event, `${record.name} · ${categoryName(record.category)}${state.slot ? ` · ${STATUS[status]}` : ''}`));
@@ -673,15 +594,12 @@ function render() {
   renderQuests();
 }
 function selectRecord(key) {
-  const firstSelection = !state.selected;
   const focused = document.activeElement;
   const focusOrigin = focused?.classList?.contains('record-button') ? 'list' : focused?.classList?.contains('map-marker') ? 'map' : null;
   state.selected = key;
-  if (firstSelection && state.mapMode === '3d') state.terrainHeightFocus = true;
   $('evidence-disclosure').open = false;
   hideTooltip();
   render();
-  if (firstSelection && state.mapMode === '3d') state.terrain3d?.focusSelection?.();
   if (focusOrigin) {
     const candidates = focusOrigin === 'list' ? $('record-list').children : $('map-world').querySelectorAll('.map-marker');
     Array.from(candidates).find((node) => node.dataset.key === key)?.focus({ preventScroll: true });
@@ -840,27 +758,22 @@ function setupEvents() {
   $('quest-search').addEventListener('input', (event) => { state.questQuery = event.target.value.trim(); renderQuests(); });
   $('quest-status-filter').addEventListener('change', (event) => { state.questStatus = event.target.value; renderQuests(); });
   $('quests-dialog').addEventListener('click', (event) => { if (event.target === $('quests-dialog')) { const rect = $('quests-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('quests-dialog').close(); } });
-  $('zoom-in').addEventListener('click', () => { state.zoom = Math.min(6, state.zoom * 1.25); applyMapView(); });
-  $('zoom-out').addEventListener('click', () => { state.zoom = Math.max(.7, state.zoom / 1.25); applyMapView(); });
-  $('zoom-reset').addEventListener('click', () => { if (state.mapMode === '3d') state.terrain3d?.reset(); else resetView(); });
+  const setView = view => { Object.assign(state, view); applyMapView(); };
+  $('zoom-in').addEventListener('click', () => setView(zoomAt(state, { x: 380, y: 295 }, 1.5)));
+  $('zoom-out').addEventListener('click', () => setView(zoomAt(state, { x: 380, y: 295 }, 1 / 1.5)));
+  $('zoom-reset').addEventListener('click', resetView);
   $('map-view-select').addEventListener('change', (event) => {
     state.mapMode = event.target.value;
-    if (state.mapMode === '3d' && state.selected) state.terrainHeightFocus = true;
     if (state.terrainStatus === 'error') { state.terrainMapId = null; state.terrainStatus = ''; }
     resetView(); hideTooltip(); renderMap(filteredRecords());
   });
   $('map-height-band').addEventListener('change', event => {
-    state.terrainBandId = event.target.value; state.terrainHeightFocus = false;
-    state.terrain3dSignature = ''; resetView(); renderMap(filteredRecords());
-  });
-  $('map-height-focus').addEventListener('change', event => {
-    state.terrainHeightFocus = event.target.checked; state.terrain3dSignature = ''; renderMap(filteredRecords());
+    state.terrainBandId = event.target.value; renderMap(filteredRecords());
   });
   const map = $('coordinate-map');
-  map.addEventListener('pointerdown', (event) => { if (event.target.closest('.map-marker')) return; state.drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, panX: state.panX, panY: state.panY }; map.setPointerCapture(event.pointerId); });
-  map.addEventListener('pointermove', (event) => { if (!state.drag || state.drag.pointer !== event.pointerId) return; const rect = map.getBoundingClientRect(); const factor = 760 / rect.width; state.panX = state.drag.panX + (event.clientX - state.drag.x) * factor; state.panY = state.drag.panY + (event.clientY - state.drag.y) * factor; applyMapView(); hideTooltip(); });
-  const endDrag = () => { state.drag = null; };
-  map.addEventListener('pointerup', endDrag); map.addEventListener('pointercancel', endDrag);
+  bindMapInteractions($('map-stage'), map, { getView: () => state, onChange: setView, onStart: hideTooltip });
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(applyMapView).observe($('map-stage'));
+  else window.addEventListener('resize', applyMapView);
   map.addEventListener('keydown', (event) => {
     if (event.target !== map) return;
     const delta = { ArrowLeft: [30, 0], ArrowRight: [-30, 0], ArrowUp: [0, 30], ArrowDown: [0, -30] }[event.key];

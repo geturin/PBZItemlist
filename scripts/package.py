@@ -8,7 +8,12 @@ DIST=ROOT/'dist'
 DIST.mkdir(exist_ok=True)
 # Keep the previous derived meshes available for source regression only.
 # No v2.1 route requests them, and they must never inflate the published site.
-files=sorted(p for p in PUBLIC.rglob('*') if p.is_file() and p.relative_to(PUBLIC).parts[:2] != ('data','terrain'))
+def published(path):
+    relative=path.relative_to(PUBLIC).as_posix()
+    return not (relative.startswith(('data/terrain/','vendor/three/'))
+                or relative in {'js/terrain-view.js','js/terrain-worker.js','js/geometry-utils.js'}
+                or relative.startswith('data/terrain-low/') and '.floors.' in path.name)
+files=sorted(p for p in PUBLIC.rglob('*') if p.is_file() and published(p))
 for path in files:
     assert not path.is_symlink()
     assert path.suffix.lower() not in {'.sav','.pem','.key','.pfx','.uasset','.uexp','.ubulk','.ucas','.utoc','.pak'}
@@ -22,6 +27,7 @@ with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None
     names=z.namelist()
     assert not any(name.startswith('data/terrain/') for name in names),'Legacy meshes must not be published'
+    assert not any(name.startswith('vendor/three/') or '.floors.' in name or name in {'js/terrain-view.js','js/terrain-worker.js','js/geometry-utils.js'} for name in names),'Retired 3D code/data must not be published'
     normalized={name.casefold() for name in names}
     assert len(normalized)==len(names),'Case-insensitive duplicate ZIP names'
     assert all('\\' not in name and ':' not in name and not name.startswith('/') and '..' not in Path(name).parts for name in names)

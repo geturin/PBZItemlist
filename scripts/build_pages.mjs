@@ -18,6 +18,7 @@ const PAGES = [
 // Static template keys live here when they are not part of the runtime dictionary.
 // Keeping the fallback explicit makes missing translations a build error.
 const STATIC_EN = {
+  'ui.collectiblesGuide': 'Collectible guides',
   'portal.title': 'Game Collectible Checkers',
   'portal.description': 'Choose a game to browse its collection checklist and check for missed items.',
   'portal.heading': 'Game Collectible Checkers',
@@ -68,9 +69,7 @@ const STATIC_EN = {
   'ui.gameMap': '2D map',
   'ui.worldCoordinates': 'World coordinates',
   'ui.terrain2d': 'Floor plan',
-  'ui.terrain3d': '3D floors',
   'ui.heightArea': 'Elevation area',
-  'ui.heightFocus': 'Near selected item’s elevation only',
   'ui.selectMap': 'Choose a map',
   'ui.mapInstructions': 'Collectible and bell locations. Arrow keys pan; plus and minus zoom; Home resets the view; Tab selects a marker.',
   'ui.mapEmptyTitle': 'Choose a map',
@@ -276,6 +275,7 @@ export function buildEnglishPage(source, page) {
     if (url.origin !== ORIGIN) continue;
     const target = PAGES.find(candidate => candidate.zh === url.pathname || candidate.source === url.pathname.replace(/^\//, ''));
     if (target) anchor.setAttribute('href', target.en + url.search + url.hash);
+    else if (page.kind === 'tool' && url.pathname.startsWith('/phantom-blade-zero/collectibles/')) anchor.setAttribute('href', '/phantom-blade-zero/en/' + url.pathname.slice('/phantom-blade-zero/'.length) + url.search + url.hash);
   }
   const languageSwitch = document.querySelector('#language-switch');
   assert(languageSwitch, `Missing language switch: ${page.source}`);
@@ -294,12 +294,19 @@ function xmlEscape(value) {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 }
 
-export function buildSitemap() {
+export function buildSitemap(guidePages = []) {
   const entries = PAGES.flatMap(page => [page.zh, page.en].map(route => {
     const alternates = [['zh-CN', page.zh], ['en', page.en], ['x-default', page.zh]]
       .map(([lang, target]) => `    <xhtml:link rel="alternate" hreflang="${lang}" href="${xmlEscape(ORIGIN + target)}"/>`).join('\n');
     return `  <url>\n    <loc>${xmlEscape(ORIGIN + route)}</loc>\n${alternates}\n  </url>`;
   }));
+  for (const page of guidePages) {
+    const zh = page.language === 'zh-CN' ? page.path : page.alternatePath;
+    const en = page.language === 'en' ? page.path : page.alternatePath;
+    const alternates = [['zh-CN', zh], ['en', en], ['x-default', zh]]
+      .map(([lang, target]) => `    <xhtml:link rel="alternate" hreflang="${lang}" href="${xmlEscape(ORIGIN + target)}"/>`).join('\n');
+    entries.push(`  <url>\n    <loc>${xmlEscape(ORIGIN + page.path)}</loc>\n${alternates}\n  </url>`);
+  }
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + entries.join('\n') + '\n</urlset>\n';
 }
 
@@ -308,15 +315,16 @@ async function main() {
   assert(args.every(arg => arg === '--check'), 'Usage: node scripts/build_pages.mjs [--check]');
   const check = args.includes('--check');
   const inputs = await Promise.all(PAGES.map(page => fs.readFile(path.join(PUBLIC, page.source), 'utf8')));
+  const guidePages = JSON.parse(await fs.readFile(path.join(PUBLIC, 'data/guide-pages.json'), 'utf8')).pages;
   const results = inputs.map((source, index) => ({ ...PAGES[index], ...buildEnglishPage(source, PAGES[index]) }));
   const outputs = results.map(result => [result.output, result.html]);
-  outputs.push(['robots.txt', `User-agent: *\nAllow: /\nDisallow: /stats/\n\nSitemap: ${ORIGIN}/sitemap.xml\n`], ['sitemap.xml', buildSitemap()]);
+  outputs.push(['robots.txt', `User-agent: *\nAllow: /\nDisallow: /stats/\nDisallow: /data/map-images-hi/\n\nSitemap: ${ORIGIN}/sitemap.xml\n`], ['sitemap.xml', buildSitemap(guidePages)]);
   for (const [relative, content] of outputs) {
     const target = path.join(PUBLIC, relative);
     if (check) assert.equal(await fs.readFile(target, 'utf8'), content, `Generated file is stale: ${relative}`);
     else { await fs.mkdir(path.dirname(target), { recursive: true }); await fs.writeFile(target, content, 'utf8'); }
   }
-  console.log(JSON.stringify({ mode: check ? 'check' : 'build', pages: results.map(result => ({ source: result.source, output: result.output, translated: result.translated })), sitemapUrls: 4, outputs: outputs.map(([relative]) => relative) }));
+  console.log(JSON.stringify({ mode: check ? 'check' : 'build', pages: results.map(result => ({ source: result.source, output: result.output, translated: result.translated })), sitemapUrls: 4 + guidePages.length, outputs: outputs.map(([relative]) => relative) }));
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

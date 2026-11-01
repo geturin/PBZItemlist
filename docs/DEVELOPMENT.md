@@ -24,7 +24,7 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 页面与地图浏览
   → catalog.json / catalog.en.json
   → app.js：物品清单、游戏 UV、当前地图图像
-  → 1024 预览；放大到 2 倍后按需读取 2048 细节
+  → 1024 预览作底；map-tiles.js 选择视野内 2K / 4K / 8K 切片
 
 用户选择 .sav
   → save-codec.js：容器校验、认证解密、限额解压、JSON 读取
@@ -33,9 +33,8 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
   → app.js：筛选、统计、详情与导出
 
 可选楼层显示
-  → terrain-data.js：独立请求 2D 轮廓或 3D 楼层
-  → 2D：terrain-2d.js 绘制预处理轮廓
-  → 3D：Worker 解压解析 → typed buffer 转移 → terrain-view.js
+  → terrain-data.js：请求独立二维轮廓
+  → terrain-2d.js 绘制预处理轮廓
   → map-view.js：世界 XY 布局；游戏贴图始终使用独立 UV
 ```
 
@@ -47,19 +46,18 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 | `public/css/app.css` | 响应式样式、焦点状态和减少动画支持 |
 | `public/js/app.js` | 文件选择、槽位切换、筛选、SVG 坐标图、任务日志、CSV |
 | `public/js/map-view.js` | 独立处理地图 UV 与世界 XY，固定画布、比例和刻度 |
-| `public/js/terrain-data.js` | 可选楼层清单、独立 2D / 3D 请求、取消与有限缓存 |
-| `public/js/terrain-worker.js`、`terrain-format.js` | 3D 解压、完整性校验、JSON 解析、typed array 转换和转移 |
-| `public/js/terrain-2d.js` | 预处理平面轮廓的 Canvas / Path2D 填充，不遍历 3D 三角形 |
-| `public/js/terrain-view.js` | 按需初始化的低模 Three.js 视图、平移旋转控制、暂停与清理 |
-| `public/js/geometry-utils.js` | 厘米坐标转换、flat / nested 几何、三角索引、取景和保持缩放的选点辅助 |
+| `public/js/terrain-data.js` | 可选二维轮廓、清单、请求取消与有限缓存 |
+| `public/js/map-interaction.js` | 指针锚定缩放、整图滚轮捕获、拖动、双指与双击 |
+| `public/js/map-tiles.js` | 按当前视野和像素需求选择切片级别，最多挂载 36 个切片节点 |
+| `public/js/terrain-2d.js` | 预处理平面轮廓的 SVG 矢量路径，不遍历 3D 三角形 |
 | `public/js/i18n.js` | UI 翻译与不改变规则、几何的英文名称覆盖 |
 | `public/js/analytics.js` | 独立的交互页面访问计数，不读取存档或应用状态 |
 | `public/js/save-codec.js` | PBZS 3 读取、WebCrypto AES-GCM、zlib / 本地 ooz-wasm 解压 |
 | `public/js/completion.js` | 完成判定、周目判断、相关任务状态与附近铃铛 |
 | `public/data/catalog.json` | 界面所需的精简静态记录 |
-| `public/data/map-images/` | 默认地图所需的 1024 预览与按需 2048 细节图 |
-| `public/data/terrain-low/` | 可选楼层轮廓、3D 楼层示意及各自的发布信息 |
-| `public/vendor/three/` | 本地固定版本 Three.js 与 OrbitControls，保留 MIT 许可证 |
+| `public/data/map-images/` | 默认地图所需的 1024 预览 |
+| `public/data/map-images-hi/` | 原生最高 8K 美术图的 2K / 4K / 8K 分级切片与清单 |
+| `public/data/terrain-low/` | 可选二维楼层轮廓及发布信息；归档模型不打包 |
 | `public/vendor/ooz-wasm/` | 固定版本 WASM 解码器、适配层、归属信息及对应源码 |
 | `scripts/validate_catalog.mjs` | 图鉴结构、标识、地图与坐标校验 |
 | `scripts/package.py` | 仅将 `public/` 内容打包为部署 ZIP |
@@ -99,21 +97,15 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 `catalog.json` 只保留公开应用需要的名称、类别、地图、世界坐标、逐点地图 UV、画布比例、判定标识、必要关联及任务目标。13 类、698 个点位是当前目录版本的范围，不是对全部可达内容的保证。
 
-2.1 默认地图使用游戏美术贴图与逐点 UV，不请求楼层清单或 3D 几何。预览和细节图在 `catalog.maps[].image` 记录；1024 预览按地图加载，2048 细节只在当前地图放大到 2 倍及以上时加载。共用图像可跨逻辑地图复用，不应一次预取所有细节图。
+默认地图使用游戏美术贴图与逐点 UV，不请求楼层清单或 3D 几何。`catalog.maps[].image` 提供 1024 预览，始终保留作底；`map-images-hi/manifest.json` 将 12 个地图分区映射到 8 张原生图。根据当前 SVG 取景、缩放、显示尺寸及受限的像素比选择 2048、4096 或 8192 宽度级别，只挂载视野附近的 512 像素切片，最多 36 个图像节点。旧异步结果用代次检查排除，移出视野的节点删除；浏览器网络缓存和解码内存由浏览器管理，36 不是全浏览器缓存预算。
 
-可选楼层视图使用独立的 5 米高度层轮廓和粗略楼层平面。它们是经过清理的显示近似，不是原始高密度导航三角网或完整环境导出。坐标、共享世界和近似边界见[地形说明](TERRAIN.md)。不应从收集点重新拟合地面，或把取景框当成精确地图边界。
+三级切片共 2,548 块、119,700,168 字节，是全部发布资产的磁盘规模，不是初始下载量。最高级别来自原生 DXT1 顶级贴图解码，源全尺寸 PNG 保留私有；低级别统一缩小，不使用 AI 重绘或额外旋转。原生最高 8K 的像素上限不会因显示倍率增加而提高。
 
-3D 的解压与 JSON 处理放入 Worker，转换为 `positionsXYZ: Float64Array` 和 `indices: Uint32Array` 后通过 transfer list 发送，不复制成第二套嵌套数组。渲染器先减双精度原点再生成 Float32 GPU 位置；typed 索引 buffer 直接复用。Worker 结束后应释放其临时数据。
+`bindMapInteractions()` 在整个地图容器捕获非 passive 滚轮，先取消默认滚动并停止传播，再按指针锚点更新取景；标记和按钮上、达到缩放上下限时也不泄漏网页滚动。缩放上限为 32，拖动、双指与双击使用同一取景状态。标记图标对子组应用 `1 / zoom`，选中点保留定位十字；图面本身继续使用原坐标，不改变 CSV 或附近铃铛计算。
 
-`createTerrainView()` 保留一份当前世界的几何。同一对象切换取景或点位筛选，不应重新建立 GPU buffers；标记按键复用 DOM。默认关闭裙边和额外线框、禁用 MSAA，DPR 最高 1.5，只按操作请求帧。离开 3D 或更换世界时，应暂停并释放不再需要的资源：
+可选分层平面图使用独立的 5 米高度层轮廓，通过 `createTerrain2DLayer()` 生成 SVG 路径，以 even-odd 规则保留洞。拖动和缩放只改变父组变换，避免固定像素画布放大后的模糊。它仍是经过清理的二维显示近似，不是原始高密度导航三角网或完整环境导出。坐标、共享世界和近似边界见[地形说明](TERRAIN.md)。不应从收集点重新拟合地面，或把取景框当成精确地图边界。高度区域由用户选择，不根据选中物品自动限制附近高度。
 
-```js
-terrainView.setActive(false);
-terrainView.clearData();
-releaseTerrain('3d');
-```
-
-`setActive(false)` 取消待绘帧并把隐藏画布缩到 1×1；`clearData()` 释放 GPU 几何、标记与源数据引用，保留可复用的 renderer。重新载入后应重新应用当前选中物品。相机的普通 `select(key)` 保持缩放；显式 `focusSelection()` 才拉近。
+3D 实验已停用。`terrain-view.js`、`terrain-worker.js`、Three.js 依赖及楼层模型仅在源码归档，当前页面不导入或请求，发布包排除这些归档内容。归档测试不作为当前二维界面的功能声明。
 
 保留的 UV 模式沿用离线重建的游戏投影。世界 XY 本身不能还原游戏按 `GroupZ` 分组、再按命中高度选择的 UV 网格；离线预处理使用 Qhull，并重建裁切与插值规则。共圆点连边和边界细节尚未与运行中的游戏逐点比对。具体证据见[地图投影说明](MAP-PROJECTION.md)，站点运行与测试无需安装 Qhull。
 
@@ -215,7 +207,7 @@ npm run package
 
 项目源码直接在 GitHub 仓库提供，不生成 `source.zip` 或上游 tar 归档。第三方对应源码保留在 `public/vendor/ooz-wasm/source/`，随静态站点一起打包；发布时同时保留应用与第三方的许可证及归属信息。
 
-Three.js / OrbitControls 0.187.0 使用 MIT 许可证；保留 `public/vendor/three/LICENSE`、`ATTRIBUTION.md` 和 `PROVENANCE.json`。其本地导入调整与压缩记录在归属文件中，不使用运行时 CDN。该许可证与应用 GPL、ooz-wasm GPL 分别保留。
+归档的 Three.js / OrbitControls 0.187.0 使用 MIT 许可证，源码保留 `public/vendor/three/LICENSE`、`ATTRIBUTION.md` 和 `PROVENANCE.json`。这些依赖不随当前二维站点发布，其许可证与应用 GPL、ooz-wasm GPL 分别保留。
 
 ## ooz-wasm 及对应源码
 

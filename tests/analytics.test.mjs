@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import assert from 'node:assert/strict';
 import { analyticsRequest, startAnalytics } from '../public/js/analytics.js';
+import { GUIDE_PAGES } from '../public/js/guide-routes.js';
 
 const input = { hostname: 'game.kero.zone', protocol: 'https:', pathname: '/phantom-blade-zero/',
   referrer: 'https://search.example/results?q=PRIVATE_SEARCH#private', userAgent: 'Mozilla/5.0 Chrome/130.0' };
@@ -14,7 +15,7 @@ for (const change of [{ hostname: 'localhost' }, { protocol: 'http:' }, { pathna
   { doNotTrack: true }, { globalPrivacyControl: true }, { excluded: true }]) {
   assert.equal(analyticsRequest({ ...input, ...change }), null);
 }
-for (const pathname of ['/', '/en/', '/phantom-blade-zero/', '/phantom-blade-zero/en/']) {
+for (const pathname of ['/', '/en/', '/phantom-blade-zero/', '/phantom-blade-zero/en/', ...Object.keys(GUIDE_PAGES)]) {
   assert.equal(new URL(analyticsRequest({ ...input, pathname })).searchParams.get('p'), pathname);
 }
 for (const referrer of ['', 'not a URL', 'file:///PRIVATE.sav', 'https://game.kero.zone/PRIVATE?save=PRIVATE']) {

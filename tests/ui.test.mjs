@@ -19,6 +19,10 @@ const route=language==='en'?'/phantom-blade-zero/en/':'/phantom-blade-zero/';
 const overlay=JSON.parse(await fs.readFile(path.join(publicRoot,'data/catalog.en.json'),'utf8'));
 const displayedCatalog=localizeCatalog(catalog,overlay,language);
 const terrain=terrainFixture(catalog);
+const nativeTiles={format:1,tileSize:512,quality:86,maps:{ZhengDaoDaYing:{image:'ui-test-native'}},images:{'ui-test-native':{
+  width:8192,height:8192,tileSize:512,levels:[2048,4096,8192].map(width=>({id:String(width),width,height:width,cols:width/512,rows:width/512,
+    lastTileWidth:512,lastTileHeight:512,urlTemplate:`ui-test-native/${width}-${'0'.repeat(16)}/{x}_{y}.webp`,tiles:(width/512)**2,bytes:100*(width/512)**2,maxTileBytes:100,sha256:'0'.repeat(64)}))
+}}};
 const checks=[];
 const network=[];
 const window=new Window({url:'http://127.0.0.1:8767'+route,settings:{disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});
@@ -50,53 +54,23 @@ globalThis.fetch=async(input,options={})=>{
   const pathname=new URL(url,'http://127.0.0.1:8767').pathname;
   const resource=['catalog.json','catalog.en.json'].find(name=>pathname.endsWith('/data/'+name));
   if(resource)return new Response(await fs.readFile(path.join(publicRoot,'data',resource)),{headers:{'Content-Type':'application/json'}});
+  if(pathname.endsWith('/data/map-images-hi/manifest.json'))return new Response(JSON.stringify(nativeTiles),{headers:{'Content-Type':'application/json'}});
   if(pathname.endsWith('/data/terrain-low/manifest.json'))return new Response(JSON.stringify(terrain.manifest),{headers:{'Content-Type':'application/json'}});
   if(pathname.endsWith('/data/terrain-low/ui-test-world.2d.json.gz'))return new Response(gzipSync(JSON.stringify(terrain.plan)),{headers:{'Content-Type':'application/gzip'}});
-  if(pathname.endsWith('/data/terrain-low/ui-test-world.3d.json.gz'))return new Response(gzipSync(JSON.stringify(terrain.geometry)),{headers:{'Content-Type':'application/gzip'}});
   throw new Error('Unexpected resource request '+url);
 };
 const html=(await fs.readFile(path.join(publicRoot,route,'index.html'),'utf8')).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
 window.document.write(html);
 await import(pathToFileURL(path.join(publicRoot,'js/app.js')));
 const $=id=>window.document.getElementById(id);
+const mapRect={left:10,top:20,width:1000,height:500,right:1010,bottom:520};
+$('coordinate-map').getBoundingClientRect=()=>mapRect;
+$('map-stage').getBoundingClientRect=()=>mapRect;
+$('coordinate-map').setPointerCapture=()=>{};
+$('coordinate-map').releasePointerCapture=()=>{};
 async function waitFor(predicate,label){for(let i=0;i<200;i++){if(predicate())return;await new Promise(r=>setTimeout(r,25));}throw new Error('Timed out: '+label+'; '+$('notice')?.textContent);}
 function change(id,value){const n=$(id);if(n.type==='checkbox')n.checked=value;else n.value=value;n.dispatchEvent(new window.Event('change',{bubbles:true}));}
 function pass(label,condition){assert(condition,label);checks.push(label);}
-// Exercise the production controller with a controlled module-load boundary.
-// No browser process or WebGL renderer is initialized for these race cases.
-const controllerSource=await fs.readFile(path.join(publicRoot,'js/app.js'),'utf8');
-const controllerStart=controllerSource.indexOf('function showTerrain3D(');
-const controllerEnd=controllerSource.indexOf('function renderMap(',controllerStart);
-assert(controllerStart>=0&&controllerEnd>controllerStart,'Terrain controller is available for the controlled regression');
-const controlledControllerSource=controllerSource.slice(controllerStart,controllerEnd).replace(/import\('\.\/terrain-view\.js[^']*'\)/,'loadRenderer()');
-function terrainController(testState,loadRenderer,renderMap=()=>{},selectNode={value:'3d'}){
-  return new Function('state','$','L','setNotice','renderMap','filteredRecords','selectRecord','loadRenderer',controlledControllerSource+';return showTerrain3D;')(
-    testState,()=>selectNode,(zh,en)=>en,()=>{},renderMap,()=>[],()=>{},loadRenderer);
-}
-{
-  let reject;
-  const pending=new Promise((resolve,fail)=>{reject=fail;});
-  const testState={mapMode:'3d',terrain3d:null},selectNode={value:'3d'};let redraws=0;
-  terrainController(testState,()=>pending,()=>redraws++,selectNode)({},[],'test-map');
-  testState.mapMode='game';selectNode.value='game';
-  reject(new Error('Controlled renderer module failure'));await testState.terrain3dPromise;
-  pass('late 3D loading failure preserves a newer map mode',testState.mapMode==='game'&&selectNode.value==='game'&&redraws===0);
-}
-{
-  const testState={mapMode:'3d',terrain3d:null};let redraws=0;
-  terrainController(testState,()=>Promise.reject(new Error('Controlled renderer module failure')),()=>redraws++)({},[],'test-map');
-  await testState.terrain3dPromise;
-  pass('active 3D loading failure still falls back safely',testState.mapMode==='game'&&redraws===1);
-}
-{
-  const selections=[];
-  const renderer={available:true,setData(){},setBand(){},setHeightRange(){},select:key=>selections.push(key),resize(){}};
-  const testState={mapMode:'3d',terrain3d:renderer,terrain3dPromise:Promise.resolve(),selected:'selected-item'};
-  const show=terrainController(testState,()=>Promise.resolve());
-  const context={geometry:{},heightRange:[0,100]};
-  show(context,[],'test-map');testState.selected=null;show(context,[],'test-map');
-  pass('clearing a selection also clears the 3D highlight',selections.length===2&&selections[0]==='selected-item'&&selections[1]===null);
-}
 await waitFor(()=>$('category-select').options.length>=14,'catalog boot');
 pass('13 collection categories', $('category-select').options.length===14);
 pass('blank state has no invented missing counts',$('stat-missing').textContent==='—');
@@ -107,6 +81,8 @@ pass('no obsolete poetic branding',!document.body.textContent.includes('影境�
 pass('technical detail and warnings start collapsed',!$('detail-panel').open&&!$('evidence-disclosure').open&&!$('analysis-warnings').closest('details').open);
 pass('Chinese text has no replacement-question-mark corruption',!document.body.textContent.includes('???'));
 pass('native 2D map is the default map mode',$('map-view-select').value==='game');
+pass('only the requested 2D modes remain',[...$('map-view-select').options].map(option=>option.value).join(',')==='game,terrain,world');
+pass('selected-item height focus and 3D container are removed',!$('map-height-focus')&&!$('map-3d'));
 pass('terrain is not downloaded before choosing a map',!network.some(request=>request.url.includes('/data/terrain-low/')));
 change('map-select','ZhengDaoDaYing');change('category-select','blackStone');
 pass('preload position browsing shows four blackstones',$('visible-count').textContent.includes('4'));
@@ -117,39 +93,29 @@ pass('native image is reused while filtering the same map',$('map-world').queryS
 const nativeArt=catalog.maps.find(map=>map.id==='ZhengDaoDaYing').image;
 pass('native map initially uses only its small preview',initialImage.getAttribute('href').includes(nativeArt.file));
 for(let i=0;i<4;i++)$('zoom-in').click();
-pass('higher resolution map is requested only after zooming',initialImage.getAttribute('href').includes(nativeArt.detailFile));
+await waitFor(()=>$('map-world').querySelector('.map-hires-tiles image'),'visible high-resolution map tiles');
+pass('native preview stays small while high resolution arrives in visible tiles',initialImage.getAttribute('href').includes(nativeArt.file)&&$('map-world').querySelectorAll('.map-hires-tiles image').length<=36);
 $('zoom-reset').click();
-change('map-view-select','3d');
-pass('3D waits for an item before loading a model or WebGL',!network.some(request=>request.url.includes('/data/terrain-low/'))&&drawing.webglAttempts===0&&!$('map-empty').classList.contains('hidden'));
-change('map-view-select','game');
 change('map-view-select','terrain');
 await waitFor(()=>$('map-stage').dataset.terrain==='ready','lazy compressed terrain draw');
-pass('terrain backdrop is present in the SVG',$('map-world').querySelector('foreignObject canvas'));
-pass('floor plan draws independent precomputed outlines',drawing.fills.length>=2&&drawing.fills.every(commands=>commands.filter(command=>command[0]==='close').length===1));
+const floorPaths=()=>[...$('map-world').querySelectorAll('path')].filter(node=>!node.closest('.map-marker,.bell-map-marker'));
+pass('floor plan uses vector paths instead of a raster canvas',floorPaths().length>=2&&!$('map-world').querySelector('canvas,foreignObject'));
+pass('floor plan paths preserve their polygon holes',floorPaths().every(node=>node.getAttribute('fill-rule')==='evenodd'||node.parentElement.getAttribute('fill-rule')==='evenodd'));
 pass('floor-plan manifest and data are loaded lazily once without 3D data',network.filter(request=>request.url.includes('/data/terrain-low/manifest.json')).length===1&&network.filter(request=>request.url.includes('/data/terrain-low/ui-test-world.2d.json.gz')).length===1&&!network.some(request=>request.url.includes('.3d.json.gz')));
 const campPoint=catalog.records.find(r=>r.mapId==='ZhengDaoDaYing'&&r.category==='blackStone'&&r.mapPosition);
 const markerFor=id=>[...$('map-world').querySelectorAll('.map-marker')].find(n=>n.dataset.key.includes(`|${id}|`));
 const beforeHeight=$('map-world').querySelectorAll('.map-marker').length;
 const terrainButton=[...$('record-list').querySelectorAll('.record-button')].find(button=>button.dataset.key.includes(`|${campPoint.id}|`));
-assert(terrainButton);terrainButton.click();change('map-height-focus',true);
-const expectedHeight=catalog.records.filter(record=>record.mapId==='ZhengDaoDaYing'&&record.category==='blackStone'&&Math.abs(record.location.Z-campPoint.location.Z)<=800).length;
-pass('height focus reduces markers using actual item Z',$('map-world').querySelectorAll('.map-marker').length===expectedHeight&&expectedHeight<beforeHeight);
-pass('height filtering preserves the collection checklist',Number($('visible-count').textContent)===4);
-pass('height filtering clips the terrain surface too',drawing.fills.at(-1).filter(command=>command[0]==='close').length===1);
-change('map-height-focus',false);change('map-height-band','z1');
-pass('an empty marker height area still displays its real surface',$('map-world').querySelectorAll('.map-marker,.bell-map-marker').length===0&&Boolean($('map-world').querySelector('foreignObject canvas'))&&drawing.fills.at(-1).filter(command=>command[0]==='close').length===1);
-change('map-height-focus',true);
-pass('height focus returns from a manually selected area to the selected item area',$('map-height-band').value==='z0');
-pass('height focus after an area change keeps the selected marker visible',Boolean(markerFor(campPoint.id))&&$('map-world').querySelectorAll('.map-marker').length===expectedHeight);
-pass('height focus after an area change retains its source surface',$('map-stage').dataset.terrain==='ready'&&drawing.fills.at(-1).filter(command=>command[0]==='close').length===1);
-change('map-height-focus',false);
+assert(terrainButton);terrainButton.click();
+pass('selecting an item does not hide the other floor-plan markers',$('map-world').querySelectorAll('.map-marker').length===beforeHeight);
+pass('item selection preserves the complete checklist',Number($('visible-count').textContent)===4);
+change('map-height-band','z1');
+pass('an empty marker height area still displays its vector floor',$('map-world').querySelectorAll('.map-marker,.bell-map-marker').length===0&&floorPaths().length===1);
 change('map-height-band','z0');
-const reusedCanvas=$('map-world').querySelector('foreignObject canvas'),fillCount=drawing.fills.length;
+const reusedFloor=floorPaths()[0];
 terrainButton.click();
-pass('selecting a marker reuses the unchanged floor-plan canvas',$('map-world').querySelector('foreignObject canvas')===reusedCanvas&&drawing.fills.length===fillCount);
-change('map-view-select','3d');
-await waitFor(()=>$('map-view-select').value==='game'&&drawing.webglAttempts>0,'WebGL unavailable fallback');
-pass('unavailable WebGL returns to native 2D before any 3D download',$('map-3d').classList.contains('hidden')&&!$('coordinate-map').classList.contains('hidden')&&Boolean($('map-world').querySelector('image.map-native-background'))&&!network.some(request=>request.url.includes('.3d.json.gz')));
+pass('selecting an item reuses unchanged floor-plan vectors',floorPaths()[0]===reusedFloor);
+pass('2D viewing never requests WebGL or 3D data',drawing.webglAttempts===0&&!network.some(request=>request.url.includes('.3d.json.gz')));
 change('map-view-select','game');
 pass('game UV remains an explicit supported mode',$('coordinate-map').dataset.projection==='game');
 const gameTransform=markerFor(campPoint.id).getAttribute('transform');
@@ -174,6 +140,49 @@ $('coordinate-map').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Arrow
 pass('keyboard pans the coordinate map',$('map-world').getAttribute('transform')!==initialView);
 $('coordinate-map').dispatchEvent(new window.KeyboardEvent('keydown',{key:'Home',bubbles:true}));
 pass('Home resets the coordinate map',$('map-world').getAttribute('transform')===initialView);
+const svgView=()=>{
+  const node=$('map-world'),pan=/translate\(\s*([-+\d.e]+)[ ,]+([-+\d.e]+)\)/i.exec(node.getAttribute('transform'));
+  assert(pan,'Map transform exposes its actual SVG translation');
+  return {zoom:Number(node.dataset.zoom),panX:Number(pan[1]),panY:Number(pan[2])};
+};
+const atScreen=(view,point)=>({x:380+view.panX+(point.x-380)*view.zoom,y:295+view.panY+(point.y-295)*view.zoom});
+function wheelOn(target,deltaY,clientX=300,clientY=210){
+  const event=new window.WheelEvent('wheel',{bubbles:true,cancelable:true,deltaY});
+  // Happy DOM omits WheelEvent's inherited MouseEvent coordinates.
+  Object.defineProperties(event,{clientX:{value:clientX},clientY:{value:clientY}});target.dispatchEvent(event);return event;
+}
+const svgScale=mapRect.height/590,svgInset=(mapRect.width-760*svgScale)/2;
+const wheelMarker=markerFor(campPoint.id),markerPoint=wheelMarker.getAttribute('transform').match(/[-+]?\d*\.?\d+(?:e[-+]?\d+)?/gi).map(Number);
+const markerLocation={x:markerPoint[0],y:markerPoint[1]},beforeWheel=atScreen(svgView(),markerLocation);
+const wheelEvent=wheelOn(wheelMarker,-120,mapRect.left+svgInset+beforeWheel.x*svgScale,mapRect.top+beforeWheel.y*svgScale);
+const afterWheel=atScreen(svgView(),markerLocation);
+pass('wheel over a marker zooms the map and prevents page scrolling',wheelEvent.defaultPrevented&&svgView().zoom>1);
+pass('wheel keeps the map location under the cursor fixed',Math.abs(beforeWheel.x-afterWheel.x)<1e-8&&Math.abs(beforeWheel.y-afterWheel.y)<1e-8);
+const iconScale=Number(/scale\(([^)]+)\)/.exec(wheelMarker.querySelector('.map-marker-icon').getAttribute('transform'))[1]);
+pass('marker graphics keep a constant screen size while zooming',Math.abs(iconScale*svgView().zoom-1)<1e-8);
+const zoomedTransform=$('map-world').getAttribute('transform'),zoomedImage=$('map-world').querySelector('image.map-native-background');
+change('category-select','all');change('category-select','blackStone');
+pass('filtering the same map preserves its zoom pan and native image',$('map-world').getAttribute('transform')===zoomedTransform&&$('map-world').querySelector('image.map-native-background')===zoomedImage);
+const selectedButton=[...$('record-list').querySelectorAll('.record-button')].find(button=>button.dataset.key.includes(`|${campPoint.id}|`));
+selectedButton.click();
+pass('selecting a point preserves the current zoom and pan',$('map-world').getAttribute('transform')===zoomedTransform);
+pass('zoomed selected marker keeps the same source UV position',markerFor(campPoint.id).getAttribute('transform')===gameTransform);
+const beforePan=svgView();
+for(const[type,x,y]of[['pointerdown',300,200],['pointermove',300+40*svgScale,200+20*svgScale],['pointerup',300+40*svgScale,200+20*svgScale]])
+  $('coordinate-map').dispatchEvent(new window.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:1,pointerType:'mouse',button:0,clientX:x,clientY:y}));
+pass('app dragging uses the true letterboxed SVG coordinate scale',Math.abs(svgView().panX-beforePan.panX-40)<1e-8&&Math.abs(svgView().panY-beforePan.panY-20)<1e-8);
+$('coordinate-map').dispatchEvent(new window.MouseEvent('click',{bubbles:true,cancelable:true}));
+for(let i=0;i<16;i++)$('zoom-in').click();
+pass('map supports useful close zoom without a six-times ceiling',svgView().zoom===32);
+const sameViewport=before=>Object.entries(before).every(([key,value])=>Math.abs(svgView()[key]-value)<1e-8);
+const maxView=svgView();
+pass('wheel at maximum zoom stays inside the map without drifting',wheelOn(markerFor(campPoint.id),-120).defaultPrevented&&sameViewport(maxView));
+for(let i=0;i<30;i++)$('zoom-out').click();
+const minView=svgView();
+pass('wheel at minimum zoom stays inside the map without drifting',svgView().zoom===.25&&wheelOn($('zoom-out'),120).defaultPrevented&&sameViewport(minView));
+const outsideWheel=wheelOn(document.body,-120);
+pass('wheel outside the map remains available to scroll the page',!outsideWheel.defaultPrevented);
+$('zoom-reset').click();
 const sample=catalog.records.find(record=>record.category==='blackStone'&&record.mapId==='ZhengDaoDaYing');
 change('map-select','all');change('category-select','all');
 $('search-input').value=sample.name;$('search-input').dispatchEvent(new window.Event('input',{bubbles:true}));

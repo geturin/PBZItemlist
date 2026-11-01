@@ -24,4 +24,304 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/"/>
   </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiGu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiGu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/XiGu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiGu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/FuJiZhiLin/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/FuJiZhiLin/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/FuJiZhiLin/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/FuJiZhiLin/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/DengDingShanDao/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DengDingShanDao/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/DengDingShanDao/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DengDingShanDao/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/PangZhen/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/PangZhen/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/PangZhen/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/PangZhen/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGuHu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGuHu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/MeiGuHu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGuHu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/DuanHunYa/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DuanHunYa/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/DuanHunYa/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DuanHunYa/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiMeng/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiMeng/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/XiMeng/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiMeng/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/HouJie/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/HouJie/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/HouJie/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/HouJie/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/LuJiaCun/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/LuJiaCun/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/LuJiaCun/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/LuJiaCun/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/ZhengDaoDaYing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/MeiGu_YiJi/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/bell/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/bell/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/bell/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/bell/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/blackStone/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/blackStone/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/blackStone/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/blackStone/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/amber/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/amber/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/amber/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/amber/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/memoryFlower/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/memoryFlower/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/memoryFlower/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/memoryFlower/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/key/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/key/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/key/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/key/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/primary/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/primary/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/primary/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/primary/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/weapon/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/weapon/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/weapon/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/weapon/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/shaqiWeapon/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/shaqiWeapon/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/shaqiWeapon/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/shaqiWeapon/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/accessory/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/accessory/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/accessory/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/accessory/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/medicine/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/medicine/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/medicine/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/medicine/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/rongShu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/rongShu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/rongShu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/rongShu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/longZhu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/longZhu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/longZhu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/longZhu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/collectibles/categories/scarecrow/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/scarecrow/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/scarecrow/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/scarecrow/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/XiGu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiGu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/XiGu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiGu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/FuJiZhiLin/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/FuJiZhiLin/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/FuJiZhiLin/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/FuJiZhiLin/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/DengDingShanDao/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DengDingShanDao/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/DengDingShanDao/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DengDingShanDao/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/PangZhen/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/PangZhen/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/PangZhen/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/PangZhen/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/MeiGuHu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGuHu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/MeiGuHu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGuHu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/DuanHunYa/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DuanHunYa/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/DuanHunYa/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/DuanHunYa/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/XiMeng/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiMeng/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/XiMeng/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/XiMeng/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/HouJie/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/HouJie/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/HouJie/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/HouJie/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/LuJiaCun/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/LuJiaCun/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/LuJiaCun/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/LuJiaCun/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/ZhengDaoDaYing/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/ZhengDaoDaYing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/ZhengDaoDaYing/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/MeiGu_YiJi/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/maps/MeiGu_YiJi/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/maps/MeiGu_YiJi/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/bell/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/bell/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/bell/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/bell/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/blackStone/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/blackStone/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/blackStone/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/blackStone/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/amber/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/amber/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/amber/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/amber/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/memoryFlower/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/memoryFlower/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/memoryFlower/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/memoryFlower/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/key/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/key/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/key/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/key/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/primary/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/primary/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/primary/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/primary/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/weapon/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/weapon/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/weapon/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/weapon/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/shaqiWeapon/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/shaqiWeapon/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/shaqiWeapon/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/shaqiWeapon/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/accessory/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/accessory/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/accessory/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/accessory/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/medicine/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/medicine/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/medicine/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/medicine/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/rongShu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/rongShu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/rongShu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/rongShu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/longZhu/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/longZhu/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/longZhu/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/longZhu/"/>
+  </url>
+  <url>
+    <loc>https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/scarecrow/</loc>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/scarecrow/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://game.kero.zone/phantom-blade-zero/en/collectibles/categories/scarecrow/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://game.kero.zone/phantom-blade-zero/collectibles/categories/scarecrow/"/>
+  </url>
 </urlset>

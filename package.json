@@ -1,12 +1,12 @@
 {
   "name": "pbz-collector",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "build": "node scripts/build_pages.mjs",
-    "test": "node scripts/build_pages.mjs --check && node scripts/validate_catalog.mjs && node tests/pages.test.mjs && node tests/completion.test.mjs && node tests/map-view.test.mjs && node tests/i18n.test.mjs && node tests/terrain-data.test.mjs && node tests/terrain-loading.test.mjs && node tests/terrain-view.test.mjs && node tests/terrain-assets.test.mjs && node tests/analytics.test.mjs && node scripts/test_codec.mjs && node tests/ui.test.mjs && node tests/ui.test.mjs en",
+    "build": "node scripts/build_guides.mjs && node scripts/build_pages.mjs",
+    "test": "node scripts/build_guides.mjs --check && node scripts/build_pages.mjs --check && node scripts/validate_catalog.mjs && node tests/pages.test.mjs && node tests/guides.test.mjs && node tests/catalog-link.test.mjs && node tests/completion.test.mjs && node tests/map-view.test.mjs && node tests/map-interaction.test.mjs && node tests/map-tiles.test.mjs && node tests/i18n.test.mjs && node tests/terrain-data.test.mjs && node tests/terrain-loading.test.mjs && node tests/terrain-assets.test.mjs && node tests/analytics.test.mjs && node scripts/test_codec.mjs && node tests/ui.test.mjs && node tests/ui.test.mjs en",
     "package": "python scripts/package.py"
   },
   "engines": {

@@ -52,10 +52,11 @@ for(const page of pages){
   }
   if(page.tool){
     assert(d.querySelector('#coordinate-map')&&d.querySelector('#file-input'));
-    assert.deepEqual([...d.querySelector('#map-view-select').options].map(option=>option.value),['game','terrain','3d','world']);
+    assert.deepEqual([...d.querySelector('#map-view-select').options].map(option=>option.value),['game','terrain','world']);
     assert.equal(d.querySelector('#map-view-select').value,'game','The native 2D map is the lightweight default');
-    for(const id of ['map-3d','map-surface-controls','map-height-band','map-height-focus'])assert(d.getElementById(id),`Missing terrain control: ${id}`);
-    assert(d.querySelector('#map-3d').classList.contains('hidden'),'3D initializes only on demand');
+    for(const id of ['map-surface-controls','map-height-band'])assert(d.getElementById(id),`Missing floor-plan control: ${id}`);
+    for(const id of ['map-3d','map-height-focus'])assert.equal(d.getElementById(id),null,`Retired control must be absent: ${id}`);
+    assert(!/WebGL|Three\.js|3D floors|3D 楼层|附近高度/.test(d.body.textContent),'Tool help must describe only the current 2D views');
     assert.equal(d.querySelector('#detail-panel').tagName,'DETAILS');assert(!d.querySelector('#detail-panel').open);
     assert(!d.querySelector('#analysis-warnings').closest('details').open);
   }else{
