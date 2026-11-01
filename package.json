@@ -1,11 +1,11 @@
 {
   "name": "pbz-collector",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
   "scripts": {
-    "test": "node scripts/validate_catalog.mjs && node tests/completion.test.mjs && node scripts/test_codec.mjs && node tests/ui.test.mjs",
+    "test": "node scripts/validate_catalog.mjs && node tests/completion.test.mjs && node tests/map-view.test.mjs && node scripts/test_codec.mjs && node tests/ui.test.mjs",
     "package": "python scripts/package.py"
   },
   "engines": { "node": ">=20" },

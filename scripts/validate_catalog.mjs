@@ -18,4 +18,14 @@ for (const record of catalog.records) {
 assert.equal(catalog.bells.length,187);
 assert.equal(catalog.questMetadata.length,80);
 assert(!('provenance' in catalog),'Raw extraction provenance stays outside the runtime catalog');
+for(const map of catalog.maps) if(map.mapProjection) {
+  assert.equal(map.mapProjection.method,'anchor-mesh');
+  assert(map.mapProjection.width>0&&map.mapProjection.height>0);
+}
+for(const point of [...catalog.records,...catalog.bells]) if(point.mapPosition) {
+  assert(Number.isFinite(point.mapPosition.X)&&Number.isFinite(point.mapPosition.Y));
+  assert(catalog.maps.find(map=>map.id===point.mapId)?.mapProjection,'UV coordinates require matching map metadata');
+}
+assert.equal(catalog.records.filter(r=>r.mapPosition).length,646);
+assert.equal(catalog.bells.filter(r=>r.mapPosition).length,175);
 console.log('PASS catalog: 698 points / 13 categories / 187 bell references / 80 task records');

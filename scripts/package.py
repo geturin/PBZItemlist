@@ -17,5 +17,9 @@ with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
     for path in files:z.write(path,path.relative_to(PUBLIC).as_posix())
 with zipfile.ZipFile(archive) as z:
     assert z.testzip() is None
-    assert all('\\' not in name and not name.startswith('/') and '..' not in Path(name).parts for name in z.namelist())
+    names=z.namelist()
+    normalized={name.casefold() for name in names}
+    assert len(normalized)==len(names),'Case-insensitive duplicate ZIP names'
+    assert all('\\' not in name and ':' not in name and not name.startswith('/') and '..' not in Path(name).parts for name in names)
+    assert all(parent.as_posix().casefold() not in normalized for name in names for parent in Path(name).parents if parent.as_posix()!='.'),'File/directory path conflict'
 print(json.dumps({'archive':str(archive),'files':len(files),'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest()}))

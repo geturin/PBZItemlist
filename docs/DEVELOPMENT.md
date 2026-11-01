@@ -24,7 +24,8 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
   → save-codec.js：容器校验、认证解密、限额解压、JSON 读取
   → 按保存时间选择默认槽位
   → completion.js：结合 catalog.json 计算点位与任务状态
-  → app.js：筛选、统计、原生坐标示意、详情与导出
+  → app.js：筛选、统计、详情与导出
+  → map-view.js：游戏地图投影或世界坐标的绘图布局
 ```
 
 | 文件 | 职责 |
@@ -32,6 +33,7 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 | `public/index.html` | 页面语义结构、对话框及内容安全策略 |
 | `public/css/app.css` | 响应式样式、焦点状态和减少动画支持 |
 | `public/js/app.js` | 文件选择、槽位切换、筛选、SVG 坐标图、任务日志、CSV |
+| `public/js/map-view.js` | 独立处理地图 UV 与世界 XY，固定画布、比例和刻度 |
 | `public/js/save-codec.js` | PBZS 3 读取、WebCrypto AES-GCM、zlib / 本地 ooz-wasm 解压 |
 | `public/js/completion.js` | 完成判定、周目判断、相关任务状态与附近铃铛 |
 | `public/data/catalog.json` | 界面所需的精简静态记录 |
@@ -72,9 +74,13 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 ## 图鉴数据与精简原则
 
-`catalog.json` 只保留公开应用需要的名称、类别、地图、世界坐标、判定标识、必要关联及任务目标。13 类、698 个点位是当前目录版本的范围，不是对全部可达内容的保证。
+`catalog.json` 只保留公开应用需要的名称、类别、地图、世界坐标、逐点地图 UV、画布比例、判定标识、必要关联及任务目标。13 类、698 个点位是当前目录版本的范围，不是对全部可达内容的保证。
 
-原生坐标图直接显示世界 XY；附近铃铛用于直线距离参考。不要套用未经验证的仿射矩阵，把世界坐标投影到手绘地图后声称能精确导航。
+1.1.0 默认使用离线重建的游戏地图投影。旧版查看器把世界 XY 平面直接绘制为 X 向右、Y 向上的图，不能还原游戏按 `GroupZ` 分组、再按命中高度选择的锚点三角网格 UV，所以铃铛的相对方向可能不同。重建时使用 Qhull 生成 XY Delaunay 三角网，再按已确认的原生裁切、命中筛选和插值规则计算逐点 UV；Qhull 的共圆点连边及边界细节尚未与运行中的游戏比对。具体规则和证据见[地图投影说明](MAP-PROJECTION.md)。该预处理不在浏览器执行，运行或测试站点无需安装 Qhull。
+
+`createMapView(points, mapMetadata, options)` 接收原始记录对象。游戏模式要求有效的 `mapProjection` 和至少一个有 `mapPosition` 的点，使用左上原点、Y 向下的 UV，并保持画布比例；缺 UV 的点返回 `null`，不混入世界坐标。传入 `options.mode: "world"` 可强制使用世界 XY。图层应以整个分区的点创建布局，再绘制筛选结果，避免类别筛选改变范围；世界模式也可通过 `mapMetadata.worldBounds` 固定边界。
+
+两种模式都保留原生 XYZ，附近铃铛和 CSV 继续使用原生坐标。游戏自身的图标避让可能移动截图中的标记；离线投影不保证逐像素相同，也不提供路线导航。公开图鉴不包含用于预处理的原始锚点、网格或贴图。
 
 更新目录时：
 
@@ -93,8 +99,11 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 | --- | --- | --- |
 | 1 | `scripts/validate_catalog.mjs` | 13 类、698 点位及铃铛／任务引用；编号唯一性、地图归属、字段与坐标格式 |
 | 2 | `tests/completion.test.mjs` | 分类规则、缺失字段、周目、待确认边界及任务状态 |
-| 3 | `scripts/test_codec.mjs` | 24 项合成检查：认证、zlib、排序、格式与长度边界，以及真实 WASM 解码合成 Oodle stored frame |
-| 4 | `tests/ui.test.mjs` | 无真实存档时执行 6 项 DOM 仿真检查，包括图鉴类别、中性空态、位置浏览及不携带存档的 GET 请求 |
+| 3 | `tests/map-view.test.mjs` | UV 方向、贴图比例、固定画布、部分命中、非法点、世界坐标回退及强制切换 |
+| 4 | `scripts/test_codec.mjs` | 合成检查：认证、zlib、排序、格式与长度边界，以及真实 WASM 解码合成 Oodle stored frame |
+| 5 | `tests/ui.test.mjs` | DOM 仿真检查，包括图鉴类别、中性空态、位置浏览、投影模式与不携带存档的 GET 请求 |
+
+各脚本用例数量以本次测试输出为准，不将 UI 数量绑定到固定版本的条目数。
 
 默认测试不依赖真实存档。Oodle 合成用例使用 stored frame，验证 WASM 与读取器的接线和输出，但**不覆盖实际游戏存档中的 Mermaid 熵压缩流**；不要把这项结果当成全部真实压缩流的兼容性证明。
 

@@ -2,6 +2,7 @@
 // Save data lives in this page's memory only. No upload, storage, or telemetry.
 import { decodeSave } from './save-codec.js';
 import { analyzeSlot } from './completion.js';
+import { createMapView } from './map-view.js';
 
 const $ = (id) => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -10,7 +11,7 @@ const STATUS = { done: '已完成', missing: '未完成', unknown: '待确认', 
 const COLORS = { done: '#99b88b', missing: '#d99d7f', unknown: '#d5bf80', browse: '#c9af79' };
 const CATEGORY_SYMBOLS = { bell: '铃', amber: '琥', hupo: '琥', blackStone: '石', blackstone: '石', heishi: '石', memoryFlower: '花', flower: '花', weapon: '刃', mainWeapon: '刃', shaqiWeapon: '武', shaqi: '武', phantomEdge: '武', accessory: '饰', medicine: '药', rongShu: '榕', longZhu: '柱', scarecrow: '试', challenge: '试', key: '钥', book: '书', quest: '闻', treasure: '藏', material: '材', primary: '物' };
 const CATEGORY_NAMES = { bell: '铃铛', amber: '杀气琥珀', hupo: '杀气琥珀', blackStone: '黑石', blackstone: '黑石', heishi: '黑石', memoryFlower: '记忆之花', flower: '记忆之花', weapon: '主武器', mainWeapon: '主武器', shaqiWeapon: '影之武装', shaqi: '影之武装', phantomEdge: '影之武装', accessory: '饰品', medicine: '药瓶', rongShu: '榕树挑战', longZhu: '龙柱挑战', scarecrow: '稻草人挑战', challenge: '挑战', key: '钥匙与机关', book: '书籍', quest: '异闻与任务', treasure: '宝藏', material: '材料', primary: '剧情物品' };
-const state = { catalog: null, catalogPromise: null, baseRecords: [], records: [], maps: [], categories: [], decoded: null, slot: null, analysis: null, file: null, map: 'all', category: 'all', query: '', pendingOnly: false, sort: 'status', selected: null, pageSize: PAGE_SIZE, busy: false, loadToken: 0, zoom: 1, panX: 0, panY: 0, mapItems: [], warnings: [], drag: null, lastMapScope: null, questQuery: '', questStatus: 'all', questExpanded: new Set() };
+const state = { catalog: null, catalogPromise: null, baseRecords: [], records: [], maps: [], categories: [], decoded: null, slot: null, analysis: null, file: null, map: 'all', category: 'all', query: '', pendingOnly: false, sort: 'status', selected: null, pageSize: PAGE_SIZE, busy: false, loadToken: 0, zoom: 1, panX: 0, panY: 0, mapItems: [], mapMode: 'game', warnings: [], drag: null, lastMapScope: null, questQuery: '', questStatus: 'all', questExpanded: new Set() };
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -214,12 +215,21 @@ function renderMap(records) {
   }
   if (state.lastMapScope !== mapId) { state.lastMapScope = mapId; resetView(); }
   const scopeRecords = records.filter((record) => record.mapId === mapId);
-  const located = scopeRecords.filter((record) => position(record));
   const boundsRecords = state.records.filter((record) => record.mapId === mapId && position(record));
   const bells = publicBellRows(mapId);
-  const allPositions = [...boundsRecords, ...bells].map(position);
+  const allPoints = [...boundsRecords, ...bells];
+  const view = createMapView(allPoints, state.maps.find((map) => map.id === mapId), { mode: state.mapMode });
+  const located = scopeRecords.filter((record) => view.project(record));
+  const plottedBells = bells.filter((bell) => view.project(bell));
+  const unprojected = scopeRecords.filter((record) => position(record) && !view.project(record)).length;
+  $('map-title').textContent = view.mode === 'game' ? '游戏地图坐标' : '世界坐标图';
+  $('map-compass').classList.toggle('hidden', view.mode === 'game');
+  $('map-projection-note').textContent = view.mode === 'game'
+    ? `游戏锚点校准 · 无道路底图${unprojected ? ` · ${unprojected} 点待校准，可切换世界坐标` : ''}`
+    : state.mapMode === 'game' ? '此分区暂无可靠投影，显示世界 XY' : '世界 XY · 非道路导航';
   $('map-scope').textContent = `${mapName(mapId)} · ${located.length} 个坐标`;
-  if (!allPositions.length || !located.length && !bells.length) {
+  $('coordinate-map').dataset.projection = view.mode;
+  if (!located.length && !plottedBells.length) {
     empty.classList.remove('hidden');
     empty.querySelector('strong').textContent = '此分区暂无可用坐标';
     empty.querySelector('p').textContent = '仍可在右侧清单中查看完成依据与相关条件。';
@@ -227,25 +237,18 @@ function renderMap(records) {
     return;
   }
   empty.classList.add('hidden');
-  const xs = allPositions.map((p) => p.X), ys = allPositions.map((p) => p.Y);
-  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-  const rangeX = Math.max(maxX - minX, 1000), rangeY = Math.max(maxY - minY, 1000);
-  const scale = Math.min(640 / rangeX, 475 / rangeY);
-  const centerX = (minX + maxX) / 2, centerY = (minY + maxY) / 2;
-  const project = (p) => ({ x: 380 + (p.X - centerX) * scale, y: 295 - (p.Y - centerY) * scale });
+  const project = view.project;
   const axis = svgElement('g', { 'aria-hidden': 'true' });
-  for (let i = 0; i <= 4; i += 1) {
-    const x = minX + (maxX - minX) * i / 4, y = minY + (maxY - minY) * i / 4;
-    const xp = project({ X: x, Y: centerY }), yp = project({ X: centerX, Y: y });
-    axis.append(svgElement('text', { x: xp.x, y: 571, 'text-anchor': 'middle', class: 'map-axis-label' }, formatCoordinate(x)), svgElement('text', { x: 11, y: yp.y + 3, class: 'map-axis-label' }, formatCoordinate(y)));
-  }
+  if (view.mode === 'game') axis.append(svgElement('rect', { ...view.frame, fill: 'none', stroke: 'currentColor', opacity: .22, 'stroke-dasharray': '4 5' }));
+  for (const tick of view.ticks) axis.append(svgElement('text', { x: tick.x, y: tick.y, 'text-anchor': tick.axis === 'x' ? 'middle' : 'start', class: 'map-axis-label' }, tick.label));
   world.append(axis);
   const bellGroup = svgElement('g', { class: 'map-bells' });
-  const representedBells = new Set(located.filter((record) => record.category === 'bell').map((record) => record.id.toLowerCase()));
-  for (const bell of bells) {
+  const representedBells = new Set(located.filter((record) => record.category === 'bell').map((record) => String(record.source?.bellId ?? record.id).toLowerCase()));
+  for (const bell of plottedBells) {
     if (representedBells.has(bell.id.toLowerCase())) continue;
-    const p = project(position(bell));
+    const p = project(bell);
     const marker = svgElement('g', { class: 'bell-map-marker', transform: `translate(${p.x} ${p.y})` });
+    marker.dataset.bellId = bell.id;
     marker.append(svgElement('circle', { class: 'point-shape', r: 4, fill: '#17211b', stroke: '#99b88b', 'stroke-width': 1.2 }), svgElement('title', {}, `铃铛：${bell.name}`));
     marker.addEventListener('pointerenter', (event) => showTooltip(event, `铃铛 · ${bell.name}`));
     marker.addEventListener('pointerleave', hideTooltip);
@@ -256,7 +259,7 @@ function renderMap(records) {
   const sorted = located.slice().sort((a, b) => Number(a._key === state.selected) - Number(b._key === state.selected));
   state.mapItems = sorted;
   for (const record of sorted) {
-    const p = project(position(record));
+    const p = project(record);
     const status = statusOf(record), color = COLORS[status];
     const selected = state.selected === record._key;
     const marker = svgElement('g', { class: `map-marker${selected ? ' is-selected' : ''}`, transform: `translate(${p.x} ${p.y})`, tabindex: 0, role: 'button', 'aria-label': `${record.name}，${state.slot ? STATUS[status] : '位置图鉴'}`, 'aria-pressed': selected });
@@ -330,6 +333,8 @@ function renderDetail() {
   if (!addParagraphs(locationContainer, locationHint)) addParagraphs(locationContainer, p ? '此点位保留了游戏原生世界坐标。可结合相邻铃铛与地图位置，在游戏内继续核对。' : '当前图鉴未提供可用位置坐标，请结合物品编号及相关任务在游戏内核对。', p ? '' : 'detail-muted');
   $('detail-coordinates').replaceChildren();
   if (p) for (const [key, value] of Object.entries(p)) if (value !== null) $('detail-coordinates').append(element('span', '', `${key}  ${Math.round(value).toLocaleString()}`));
+  if (record.mapPosition) addParagraphs(locationContainer, `游戏地图位置：横向 ${(record.mapPosition.X * 100).toFixed(1)}% · 纵向 ${(record.mapPosition.Y * 100).toFixed(1)}%（从左上角起）`, 'detail-muted');
+  else if (p) addParagraphs(locationContainer, '此点尚无可靠的游戏地图投影，可切换世界坐标查看原生位置。', 'detail-muted');
   const reason = $('detail-reason');
   reason.replaceChildren();
   if (!state.slot) addParagraphs(reason, '载入存档并选择槽位后，可在这里查看完成依据。', 'detail-muted');
@@ -610,6 +615,7 @@ function setupEvents() {
   $('zoom-in').addEventListener('click', () => { state.zoom = Math.min(6, state.zoom * 1.25); applyMapView(); });
   $('zoom-out').addEventListener('click', () => { state.zoom = Math.max(.7, state.zoom / 1.25); applyMapView(); });
   $('zoom-reset').addEventListener('click', resetView);
+  $('map-view-select').addEventListener('change', (event) => { state.mapMode = event.target.value; resetView(); renderMap(filteredRecords()); });
   const map = $('coordinate-map');
   map.addEventListener('pointerdown', (event) => { if (event.target.closest('.map-marker')) return; state.drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, panX: state.panX, panY: state.panY }; map.setPointerCapture(event.pointerId); });
   map.addEventListener('pointermove', (event) => { if (!state.drag || state.drag.pointer !== event.pointerId) return; const rect = map.getBoundingClientRect(); const factor = 760 / rect.width; state.panX = state.drag.panX + (event.clientX - state.drag.x) * factor; state.panY = state.drag.panY + (event.clientY - state.drag.y) * factor; applyMapView(); hideTooltip(); });

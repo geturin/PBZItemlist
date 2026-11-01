@@ -13,11 +13,12 @@ npm ci --ignore-scripts
 npm test
 ```
 
-当前 `npm test` 按顺序运行四项检查，任何一项失败都会停止：
+1.1.0 的 `npm test` 按顺序运行五步检查，任何一步失败都会停止：
 
 ```sh
 node scripts/validate_catalog.mjs
 node tests/completion.test.mjs
+node tests/map-view.test.mjs
 node scripts/test_codec.mjs
 node tests/ui.test.mjs
 ```
@@ -30,12 +31,17 @@ node tests/ui.test.mjs
 | --- | --- | --- |
 | 静态目录 | `node scripts/validate_catalog.mjs` | 检查 698 个点位、13 类目录、187 个铃铛参照和 80 条任务元数据，以及 ID 唯一性、地图和类别引用、坐标、条件关系和运行时目录不含原始解包来源字段。 |
 | 完成规则 | `node tests/completion.test.mjs` | 验证周目、Actor 与事件节点记录的存在性、已消耗钥匙、部分存档缺字段、任务关联与已知前置的区别，以及 13 类目录的状态统计。 |
+| 地图绘图 | `node tests/map-view.test.mjs` | 验证 UV 左上原点和 Y 向下、真实画布比例、筛选不改变游戏地图框、部分点无命中时不混用坐标系、非法点、强制世界坐标模式，以及固定世界范围。 |
 | 存档容器 | `node scripts/test_codec.mjs` | 无私有样本时 24 项合成测试，`private_fixture_used` 为 `false`。检查 WebCrypto AES-GCM、zlib 解压、目录与数据段认证、时间与槽位选择、重复名称、越界、重叠、尾随数据、解压长度和资源限制，并运行真实 Oodle WASM 模块的 stored frame 烟测。 |
-| 界面逻辑 | `node tests/ui.test.mjs` | 不设置 `PBZ_TEST_SAVE` 时 6 项通过：13 类目录、载入前中性计数、公开界面无私人路线区块、无独立攻略区块、未载入存档也可浏览点位，以及模拟网络调用只使用不带存档内容的 GET。 |
+| 界面逻辑 | `node tests/ui.test.mjs` | 不设置 `PBZ_TEST_SAVE` 时，检查 13 类目录、载入前中性计数、公开界面无私人路线或独立攻略区块、未载入存档的位置浏览、游戏投影与世界坐标模式，以及模拟网络调用只使用不带存档内容的 GET。 |
+
+各项通过数量以本次命令输出为准；界面用例会随交互变化增加，不固定为某个旧版本的数量。
 
 Oodle 烟测把自行生成的 JSON 包装为合成 stored frame，再经实际 WASM 模块解码，验证 WASM 的加载与调用链。stored frame 不需要执行真实 Mermaid 压缩数据的解码算法，因此这项测试不等同于真实游戏 Mermaid 压缩流的覆盖。
 
 公开界面测试使用 Happy DOM，验证事件和 DOM 状态，不代表真实浏览器排版、浏览器 WebAssembly SIMD 或生产 HTTPS 环境已经通过检查。
+
+地图测试验证已生成 UV 的绘制和回退行为，不验证原生网格重建与运行中的游戏完全相同。离线预处理使用 Qhull；共圆点连边、浮点边界与三角网裁切细节仍需运行时比对，游戏自己的图标避让也会改变截图位置。详见[地图投影说明](MAP-PROJECTION.md)。
 
 ## 可选的私有回归样本
 
@@ -67,7 +73,7 @@ node tests/ui.test.mjs
 Remove-Item Env:PBZ_TEST_SAVE
 ```
 
-UI 回归分支读取该 `.sav`，启用文件选择、槽位切换、状态重算、CSV 导出、清除和错误处理等额外检查；期望值由 `analyzeSlot` 从载入的槽位动态计算。它不需要 codec 回归目录中的同名 JSON，也不把环境变量作为 codec 的目录参数。默认 6 项 UI 检查指未设置该环境变量的情况。
+UI 回归分支读取该 `.sav`，启用文件选择、槽位切换、状态重算、CSV 导出、清除和错误处理等额外检查；期望值由 `analyzeSlot` 从载入的槽位动态计算。它不需要 codec 回归目录中的同名 JSON，也不把环境变量作为 codec 的目录参数。
 
 回归样本请放在仓库外。不要将其放入 `public/`、提交 Git，或作为发布包附件。正常应用的存档选择与解码均在用户浏览器本地完成。
 
@@ -101,8 +107,9 @@ python -m http.server 8767 --bind 127.0.0.1 --directory public
 
 1. 不选存档，核对类别与地图筛选、点位列表及载入前的计数。
 2. 选择自己的 `.sav`，核对进度、槽位、最新时间和状态重算；在网络面板检查没有携带存档内容的上传请求。
-3. 切换类别与“仅未收”，点选坐标和铃铛近邻，检查窄屏布局与键盘操作。
+3. 切换类别与“仅未收”，确认同一分区的投影框保持不变；切换“游戏地图 / 世界坐标”，核对模式提示、未校准点回退、点位详情和原生坐标。
 4. 导出 CSV、切换槽位、清除数据，再选择无效文件，检查状态和错误提示。
+5. 点选坐标和铃铛近邻，检查窄屏布局与键盘操作；比对游戏截图时记录地图、点位编号和高度，并考虑游戏图标避让造成的偏移。
 
 WebCrypto 需要 HTTPS 或受信任的本机 localhost 环境。Oodle 解码还需要浏览器支持 WebAssembly SIMD；部署的 CSP 需要允许本站脚本及 `wasm-unsafe-eval`。原始游戏坐标的直线近邻仅用于定位，不代表道路可达性。
 

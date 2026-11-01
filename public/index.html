@@ -9,8 +9,8 @@
   <meta name="description" content="影之刃零存档查漏工具。在浏览器本地分析存档，核对收集物、铃铛和探索进度。无需账号，无需上传存档。">
   <title>影境拾遗 · 影之刃零存档查漏</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111715'/%3E%3Cpath d='M17 16h30v32H17z' fill='none' stroke='%23c5ad7c' stroke-width='2'/%3E%3Ctext x='32' y='42' font-size='29' text-anchor='middle' fill='%23c5ad7c' font-family='serif'%3E拾%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/app.css">
-  <script type="module" src="./js/app.js"></script>
+  <link rel="stylesheet" href="./css/app.css?v=1.1.0">
+  <script type="module" src="./js/app.js?v=1.1.0"></script>
 </head>
 <body>
   <a class="skip-link" href="#workspace">跳到收集清单</a>
@@ -77,20 +77,20 @@
 
       <div class="explorer-grid">
         <section class="map-panel panel" aria-labelledby="map-title">
-          <div class="panel-header"><div><span class="panel-kicker">WORLD COORDINATES</span><h3 id="map-title">原生坐标图</h3></div><span class="map-mode" id="map-scope">选择地图以定位</span></div>
+          <div class="panel-header"><div><span class="panel-kicker">EXPLORATION MAP</span><h3 id="map-title">游戏地图坐标</h3></div><div class="map-view-control"><label class="sr-only" for="map-view-select">地图坐标模式</label><select id="map-view-select"><option value="game">游戏地图</option><option value="world">世界坐标</option></select><span class="map-mode" id="map-scope">选择地图以定位</span></div></div>
           <div class="map-stage" id="map-stage">
-            <svg id="coordinate-map" viewBox="0 0 760 590" role="group" aria-label="收集物与铃铛的原生 XY 坐标图。方向键平移，加减号缩放，Home 复位；可用 Tab 选择标记。" tabindex="0">
+            <svg id="coordinate-map" viewBox="0 0 760 590" role="group" aria-label="收集物与铃铛的位置图，可切换游戏地图投影与世界坐标。方向键平移，加减号缩放，Home 复位；可用 Tab 选择标记。" tabindex="0">
               <defs><pattern id="map-grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M 48 0 L 0 0 0 48" fill="none" stroke="currentColor" stroke-width=".7"/></pattern><radialGradient id="map-glow"><stop offset="0" stop-color="#5d7153" stop-opacity=".2"/><stop offset="1" stop-color="#19221d" stop-opacity="0"/></radialGradient></defs>
               <rect width="760" height="590" fill="url(#map-grid)" class="map-grid-background"/>
               <ellipse cx="360" cy="270" rx="340" ry="260" fill="url(#map-glow)"/>
               <g id="map-world"></g>
             </svg>
             <div class="map-empty" id="map-empty"><span aria-hidden="true">⌖</span><strong>江湖自此展开</strong><p>选择一个地图分区，查看收集物的位置。</p></div>
-            <div class="map-compass" aria-hidden="true"><span>+Y</span><svg viewBox="0 0 38 38"><path d="m19 3 7 21-7-5-7 5Z"/><path d="M19 19v15M4 19h9m12 0h9"/></svg><small>+X →</small></div>
+            <div class="map-compass hidden" id="map-compass" aria-hidden="true"><span>+Y</span><svg viewBox="0 0 38 38"><path d="m19 3 7 21-7-5-7 5Z"/><path d="M19 19v15M4 19h9m12 0h9"/></svg><small>+X →</small></div>
             <div class="map-zoom" role="group" aria-label="坐标图视图控制"><button id="zoom-in" type="button" aria-label="放大坐标图">+</button><button id="zoom-out" type="button" aria-label="缩小坐标图">−</button><button id="zoom-reset" type="button" aria-label="重置坐标图视图">⌖</button></div>
             <div class="map-tooltip hidden" id="map-tooltip" role="tooltip"></div>
           </div>
-          <div class="map-footer"><div class="map-legend"><span><i class="legend-shape collectible"></i>收集物</span><span><i class="legend-shape bell"></i>铃铛</span><span id="map-status-legend"><i class="status-dot missing"></i>未完成</span></div><span class="coordinate-note">世界 XY · 非道路导航</span></div>
+          <div class="map-footer"><div class="map-legend"><span><i class="legend-shape collectible"></i>收集物</span><span><i class="legend-shape bell"></i>铃铛</span><span id="map-status-legend"><i class="status-dot missing"></i>未完成</span></div><span class="coordinate-note" id="map-projection-note">游戏地图投影 · 非道路导航</span></div>
         </section>
 
         <section class="list-panel panel" aria-labelledby="list-title">
@@ -117,7 +117,7 @@
 
   <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title">
     <div class="dialog-heading"><div><p class="eyebrow">A FIELD GUIDE</p><h2 id="help-title">使用说明</h2></div><button class="icon-button" id="close-help" type="button" aria-label="关闭说明">×</button></div>
-    <ol class="help-steps"><li><span>01</span><div><h3>载入自己的存档</h3><p>选择或拖入游戏的 .sav 文件。读取、解码与分析都在当前浏览器中进行；页面不会上传文件，也不会修改原存档。</p></div></li><li><span>02</span><div><h3>选择进度与地图</h3><p>切换自动或手动槽位，选择地图及收集类别。勾选“仅未收 / 待确认”，集中查看尚未确认完成的记录。</p></div></li><li><span>03</span><div><h3>结合依据继续探索</h3><p>点选记录可查看原生坐标、附近铃铛和条件状态。“待确认”代表当前证据不足，不等于一定没有获得。世界坐标图展示相对位置，不表示可通行道路。</p></div></li></ol>
+    <ol class="help-steps"><li><span>01</span><div><h3>载入自己的存档</h3><p>选择或拖入游戏的 .sav 文件。读取、解码与分析都在当前浏览器中进行；页面不会上传文件，也不会修改原存档。</p></div></li><li><span>02</span><div><h3>选择进度与地图</h3><p>切换自动或手动槽位，选择地图及收集类别。勾选“仅未收 / 待确认”，集中查看尚未确认完成的记录。</p></div></li><li><span>03</span><div><h3>结合依据继续探索</h3><p>点选记录可查看原生坐标、附近铃铛和条件状态。“待确认”代表当前证据不足，不等于一定没有获得。地图默认按游戏锚点投影，可切换世界坐标查看未校准点；两种视图均不表示可通行道路。</p></div></li></ol>
     <div class="help-note"><strong>会话与数据</strong><p>存档只保存在当前页面内存中，刷新或清空会话后需重新载入。CSV 包含当前筛选出的记录。不同游戏版本或未记录的事件可能影响判断；重要进度请在游戏内核对。</p></div>
     <button class="button button-primary" id="help-done" type="button">开始探索 <span aria-hidden="true">→</span></button>
   </dialog>
